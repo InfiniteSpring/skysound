@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Музыка космоса
 
-## Getting Started
+Интерактивная карта неба: выбираете объект (планету, пульсар, переменную звезду) и жанр — музыка
+бесконечно генерируется в браузере из реальных научных данных объекта.
 
-First, run the development server:
+## Быстрый старт
 
 ```bash
+cp .env.example .env.local          # DATABASE_URL, NEXT_PUBLIC_SITE_URL
+npm install
+npm run db:migrate                   # включает pg_trgm и создаёт таблицу objects
+npm run db:seed                      # 8 сид-объектов через те же адаптеры, что и API
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Скрипт | Что делает |
+| --- | --- |
+| `npm test` | Vitest: адаптеры, нормализатор, маппинг, композитор, DB-first сервис (нужна БД `skysound_test` или `TEST_DATABASE_URL`) |
+| `npm run test:e2e` | Playwright смоук (поднимет `build && start`, если сервер не запущен) |
+| `npm run db:rebuild` | Пересобрать `params` из сохранённых `raw` без запросов к каталогам |
+| `npm run fixtures` | Перезаписать `tests/fixtures/*.json` реальными ответами каталогов |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Как устроено
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+app/                    роуты: /, /object/[slug], /api/objects/[slug], /api/objects/search, sitemap, robots
+components/audio        AudioProvider в корневом layout — звук не прерывается при навигации
+components/scene        Three.js (r3f): звёздное поле + Млечный Путь, объекты по RA/Dec, перелёт камеры
+components/sky          SkyProvider: список объектов, выбор = URL, подгрузка новых объектов
+lib/sources             адаптеры каталогов + normalize.ts (Zod-схема SpaceObject)
+lib/db                  Drizzle-схема, клиент, репозиторий objects
+lib/objects             DB-first сервис, кэшируемые запросы для страниц
+lib/audio               mapping (данные → музыка), composer (чистая генерация тактов), genres, engine (Tone.js)
+scripts/                seed, rebuild, capture-fixtures
+```
 
-## Learn More
+**Каталоги.** SIMBAD (Sesame + TAP: координаты, Teff, параллакс, кросс-идентификаторы) →
+по идентификаторам дозапрашиваются Gaia DR3 (Teff, светимость), ATNF (период пульсара,
+расстояние), VSX (тип и период переменности). Планеты и тела Солнечной системы — JPL Horizons.
+У каждого запроса таймаут, ретраи с бэкоффом и лимит частоты на каталог.
 
-To learn more about Next.js, take a look at the following resources:
+**DB-first.** `GET /api/objects/[slug]`: готовая запись отдаётся сразу. Иначе вставляется
+заглушка `fetching` — уникальный `slug` работает как блокировка, так что каталоги опрашивает
+ровно один запрос; остальные ждут его промис (тот же процесс) или опрашивают статус (другие
+инстансы). Ошибка → `failed` с кулдауном на повтор; «не найдено» кэшируется дольше. Зависшая
+`fetching`-запись перехватывается через 90 с. Если объект уже лежит под другим slug
+(`canonical_key`, например `simbad:* alf Ori`), новый slug становится алиасом.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Маппинг.** Период (спин пульсара, пульсация звезды, орбита планеты) сворачивается степенями
+двойки в диапазон BPM жанра; отношение периодов → интервал тоники и выбор прогрессии;
+температура → лад, яркость фильтра и тембр; кривая блеска → громкость, cutoff и реверб по долям;
+расстояние → длина и доля реверберации, задержка. Отсутствующие параметры — дефолты по типу.
+Все ноты диатоничны ладу (проверено тестами), на мастере компрессор и лимитер −1.5 dBFS.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Отступления от ТЗ
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **AAVSO API закрыт Cloudflare-челленджем**, поэтому VSX читается с его зеркала на VizieR
+  (`B/vsx/vsx`). Наблюдённые кривые блеска (AAVSO/TESS) не подключены: кривая строится как
+  модель по типу переменности и периоду из VSX и помечена `kind: "model"`.
+- ISR реализован через Cache Components (Next 16): `'use cache'` + `cacheTag` для запросов к БД,
+  `generateStaticParams` для сид-страниц; после подгрузки нового объекта API инвалидирует теги.
+- Этап 2 (аккаунты, экспорт, cron) не делался.
