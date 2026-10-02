@@ -15,7 +15,7 @@ async function main() {
   let failed = 0;
   for (const entry of SEED.filter((e) => !only.length || only.includes(e.slug))) {
     process.stdout.write(`${entry.slug.padEnd(14)} `);
-    const result = await ingest(entry.slug, entry.ref, { name: entry.name, description: entry.description });
+    const result = await ingest(entry.slug, entry.ref, { names: entry.names, descriptions: entry.descriptions });
     if (result.status === "ready") {
       console.log(`✓ ${result.object.type.padEnd(14)} ${JSON.stringify(result.object.params)}`);
     } else {

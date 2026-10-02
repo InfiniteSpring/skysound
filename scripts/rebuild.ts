@@ -15,7 +15,8 @@ async function main() {
   for (const row of rows) {
     const seed = SEED.find((s) => s.slug === row.slug);
     try {
-      const obj = rebuild(row, seed ? { name: seed.name, description: seed.description } : { name: row.name });
+      // Seeds get their curated texts; other objects keep the names they were stored with.
+      const obj = rebuild(row, seed ? { names: seed.names, descriptions: seed.descriptions } : { names: row.names, descriptions: row.descriptions });
       await updateDerived(row.slug, obj);
       console.log(`✓ ${row.slug}`);
     } catch (err) {

@@ -1,0 +1,216 @@
+{
+ "simbad": {
+  "mainId": "* alf Tau",
+  "basic": {
+   "columns": [
+    "oid",
+    "main_id",
+    "ra",
+    "dec",
+    "otype",
+    "plx_value",
+    "sp_type"
+   ],
+   "rows": [
+    [
+     719377,
+     "* alf Tau",
+     68.9801627900154,
+     16.5093023507718,
+     "LP?",
+     48.94,
+     "K5+III"
+    ]
+   ]
+  },
+  "ids": {
+   "columns": [
+    "id"
+   ],
+   "rows": [
+    [
+     "HIP 21421"
+    ],
+    [
+     "HD  29139"
+    ],
+    [
+     "NAME Aldebaran"
+    ]
+   ]
+  },
+  "teff": {
+   "columns": [
+    "teff"
+   ],
+   "rows": [
+    [
+     3850
+    ],
+    [
+     3994
+    ],
+    [
+     4000
+    ],
+    [
+     4000
+    ],
+    [
+     3733
+    ],
+    [
+     3969
+    ],
+    [
+     3733
+    ],
+    [
+     4131
+    ],
+    [
+     4131
+    ],
+    [
+     3847
+    ],
+    [
+     3800
+    ],
+    [
+     3910
+    ],
+    [
+     3875
+    ],
+    [
+     3887
+    ],
+    [
+     3922
+    ],
+    [
+     4131
+    ],
+    [
+     4131
+    ],
+    [
+     3847
+    ],
+    [
+     3800
+    ],
+    [
+     3910
+    ],
+    [
+     3875
+    ],
+    [
+     3850
+    ],
+    [
+     3950
+    ],
+    [
+     4000
+    ],
+    [
+     4100
+    ],
+    [
+     4140
+    ],
+    [
+     4788
+    ],
+    [
+     3982
+    ],
+    [
+     3914
+    ],
+    [
+     3936
+    ],
+    [
+     3823
+    ],
+    [
+     3927
+    ],
+    [
+     3860
+    ],
+    [
+     4081
+    ],
+    [
+     3945
+    ],
+    [
+     3982
+    ],
+    [
+     3921
+    ],
+    [
+     3853
+    ],
+    [
+     3921
+    ],
+    [
+     3850
+    ],
+    [
+     3870
+    ],
+    [
+     3900
+    ],
+    [
+     3900
+    ],
+    [
+     3893
+    ],
+    [
+     3885
+    ],
+    [
+     3733
+    ],
+    [
+     3733
+    ],
+    [
+     3800
+    ],
+    [
+     3800
+    ],
+    [
+     3800
+    ]
+   ]
+  },
+  "flux": {
+   "columns": [
+    "filter",
+    "flux"
+   ],
+   "rows": [
+    [
+     "V",
+     0.86
+    ]
+   ]
+  }
+ },
+ "vsx": {
+  "target": "68.9801627900154 +16.5093023507718",
+  "tsv": "#\n#   VizieR Astronomical Server vizier.cds.unistra.fr\n#    Date: 2026-10-17T18:12:35 [V7.6.1]\n#   In case of problem, please report to:\tcds-question@unistra.fr\n#\n#\n#Coosys\tJ2000:\teq_FK5 J2000\n#INFO\tservice_protocol=ASU\t  IVOID of the protocol through which the data was retrieved\n#INFO\trequest_date=2026-10-17T18:12:35\t  Query execution date\n#INFO\trequest=https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=B%2Fvsx%2Fvsx&-c=68.9801627900154+%2B16.5093023507718&-c.rs=20&-out=Name%2CType%2Cmax%2Cmin%2Cf_min%2CPeriod%2CEpoch&-out.add=_r&-sort=_r&-out.max=5&-out.form=mini\t  Full request URL\n#INFO\tcontact=cds-question@unistra.fr\t  Email or URL to contact publisher\n#INFO\tserver_software=VizieR/7.6.1\t  Software version\n#INFO\tpublisher=CDS\t  Data centre that produced the VOTable\n#INFO\theader_format=mini\t\n#INFO\theader_format=mini\t\n\n#RESOURCE=yCat_102027\n#Name: B/vsx\n#Title: AAVSO International Variable Star Index VSX (Watson+, 2006-)\n#INFO\tivoid=ivo://cds.vizier/b/vsx\t    IVOID of underlying data collection\n#INFO\tdata_ivoid=ivo://cds.vizier/b/vsx\t    IVOID of underlying data collection\n#INFO\tcreator=Watson C.\t    First author or institution\n#INFO\tcites=bibcode:2006SASS...25...47W\t    Article or Data origin sources\n#INFO\tjournal=SASS\t    Journal name\n#INFO\toriginal_date=2006\t    Year of the article publication\n#INFO\treference_url=https://cdsarc.cds.unistra.fr/viz-bin/cat/B/vsx\t    Dataset landing page\n#INFO\tpublication_date=2026-10-05\t    Date of first publication in the data centre\n#INFO\trights_uri=https://cds.unistra.fr/vizier-org/licences_vizier.html\t    Licence URI\n#Table\tB_vsx_vsx:\n#Name: B/vsx/vsx\n#Title: Variable Star indeX, Version 2026-10-05 (\\originalcolumnnames)\n#Column\t_r\t(F5.2)\tDistance from center ( 68.98016 16.50930)[FK5/J2000]\t[ucd=pos.angDistance]\n#Column\tName\t(A30)\tVariable star identifier\t[ucd=meta.id;meta.main]\n#Column\tType\t(A30)\t? Variability type, ariability type, as in GCVS catalog Variability type (see details of VSX type list)\t[ucd=src.class]\n#Column\tmax\t(F7.3)\t[-6.0/25.2]? Magnitude at maximum, or amplitude (MagMax)\t[ucd=src.var.amplitude]\n#Column\tmin\t(F7.3)\t[-0.02/28.0]? Magnitude at minimum, or amplitude (MagMin)\t[ucd=src.var.amplitude]\n#Column\tf_min\t(A1)\t? Flag to indicate an amplitude (MinIsAmplitude)\t[ucd=meta.code;src.var.amplitude]\n#Column\tPeriod\t(F19.12)\t[0.0/27400.0]? Period of the variable in days\t[ucd=time.period]\n#Column\tEpoch\t(F14.5)\t? Epoch of maximum or minimum (HJD)\t[ucd=time.epoch]\n_r\tName\tType\tmax\tmin\tf_min\tPeriod\tEpoch\narcsec\t \t \tmag\tmag\t \td\td\n-----\t------------------------------\t------------------------------\t-------\t-------\t-\t-------------------\t--------------\n 0.04\talf Tau                       \tLB:                           \t  0.860\t  0.890\t \t                   \t\n\n\n"
+ }
+}

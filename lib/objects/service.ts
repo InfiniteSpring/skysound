@@ -1,4 +1,5 @@
 import * as repo from "../db/objects";
+import type { Lang } from "../i18n/config";
 import type { ObjectRow } from "../db/schema";
 import { slugToQuery } from "../slug";
 import { fetchBundle, normalize, resolveQuery } from "../sources";
@@ -12,8 +13,8 @@ export type GetResult =
   | { status: "pending" };
 
 export interface Overrides {
-  name?: string;
-  description?: string;
+  names?: Partial<Record<Lang, string>>;
+  descriptions?: Partial<Record<Lang, string>>;
 }
 
 /** Catalog access, injectable so tests can count calls without the network. */
@@ -104,7 +105,7 @@ export async function getOrFetchObject(slug: string, opts: GetOptions = {}): Pro
   let row = await repo.findBySlug(slug);
 
   if (!row) {
-    const claimed = await repo.claim(slug, query, opts.overrides?.name ?? query);
+    const claimed = await repo.claim(slug, query, opts.overrides?.names?.en ?? query);
     if (claimed) return leadOnce(slug, query, opts);
     row = await repo.findBySlug(slug);
     if (!row) return { status: "pending" };
@@ -137,7 +138,7 @@ async function waitForFetch(slug: string, opts: GetOptions): Promise<GetResult> 
 /** Force a fresh fetch (seed / cron refresh). Not deduplicated — for scripts, not requests. */
 export async function ingest(slug: string, query: string, overrides: Overrides = {}, fetcher = catalogFetcher) {
   const existing = await repo.findBySlug(slug);
-  if (!existing) await repo.claim(slug, query, overrides.name ?? query);
+  if (!existing) await repo.claim(slug, query, overrides.names?.en ?? query);
   return lead(slug, query, { overrides, fetcher });
 }
 

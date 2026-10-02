@@ -61,12 +61,13 @@ export class MusicScene {
 
     this.inst = createInstruments(p, genre, { ...this.layers, filter: this.filter });
     this.state = initialState(p);
-    this.ready = this.reverb.ready;
+    // Swallow late IR completion if the scene was disposed while rendering.
+    this.ready = this.reverb.ready.catch(() => {});
   }
 
-  /** Begin playing at the next bar line of the shared transport. */
+  /** Begin on the next beat of the shared transport (not the next bar: that can be 4+ s away). */
   start() {
-    this.loop = new Tone.Loop((time) => this.playBar(time), "1m").start("@1m");
+    this.loop = new Tone.Loop((time) => this.playBar(time), "1m").start("@4n");
   }
 
   fadeIn(seconds: number) {

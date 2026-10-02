@@ -1,8 +1,7 @@
 "use client";
 
-import { Html } from "@react-three/drei";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { ObjectDto } from "@/lib/objects/dto";
 import { kelvinToRgb, raDecToVector, SKY_RADIUS } from "@/lib/sky/coords";
@@ -45,6 +44,34 @@ function ringTexture() {
   return ring;
 }
 
+/**
+ * Labels are text drawn into a canvas texture on a sprite: no DOM elements to reposition
+ * every frame, which kept dozens of labels from costing frame time.
+ */
+const LABEL_SCALE = 0.045; // world units per canvas pixel at the sky radius
+function labelTexture(text: string) {
+  const font = "500 26px system-ui, -apple-system, 'Segoe UI', sans-serif";
+  const probe = document.createElement("canvas").getContext("2d")!;
+  probe.font = font;
+  const w = Math.ceil(probe.measureText(text).width) + 24;
+  const h = 40;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+  ctx.font = font;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.shadowColor = "rgba(0,0,0,0.9)";
+  ctx.shadowBlur = 6;
+  ctx.fillStyle = "#fff";
+  ctx.fillText(text, w / 2, h / 2);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter;
+  return { tex, w, h };
+}
+
 const TYPE_COLOR: Partial<Record<ObjectDto["type"], string>> = {
   planet: "#e9cfa3",
   moon: "#d7d7d7",
@@ -78,7 +105,17 @@ function visibleRate(periodS: number) {
   return f;
 }
 
-function Marker({ object, selected, onSelect }: { object: ObjectDto; selected: boolean; onSelect(o: ObjectDto): void }) {
+function Marker({
+  object,
+  label: labelText,
+  selected,
+  onSelect,
+}: {
+  object: ObjectDto;
+  label: string;
+  selected: boolean;
+  onSelect(o: ObjectDto): void;
+}) {
   const sprite = useRef<THREE.Sprite>(null);
   const ringRef = useRef<THREE.Sprite>(null);
   const [hovered, setHovered] = useState(false);
@@ -88,6 +125,8 @@ function Marker({ object, selected, onSelect }: { object: ObjectDto; selected: b
   );
   const color = useMemo(() => colorFor(object), [object]);
   const base = TYPE_SIZE[object.type] * (object.slug === "sun" ? 1.3 : 1);
+  const label = useMemo(() => labelTexture(labelText), [labelText]);
+  useEffect(() => () => label.tex.dispose(), [label]);
   const samples = object.lightCurve?.samples;
   const rate = object.type === "pulsar" && object.params.period_s ? visibleRate(object.params.period_s) : 0;
 
@@ -138,32 +177,39 @@ function Marker({ object, selected, onSelect }: { object: ObjectDto; selected: b
           <spriteMaterial map={ringTexture()} color={color} transparent opacity={0.6} depthWrite={false} />
         </sprite>
       )}
-      <Html center position={[0, 0, 0]} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
-        <div
-          className={`mt-10 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] tracking-wide transition-colors ${
-            selected ? "bg-white/15 text-white" : hovered ? "text-white" : "text-white/55"
-          }`}
-        >
-          {object.name}
-        </div>
-      </Html>
+      <sprite
+        position={[0, -base * 0.75, 0]}
+        scale={[label.w * LABEL_SCALE, label.h * LABEL_SCALE, 1]}
+        center={new THREE.Vector2(0.5, 1)}
+        raycast={() => null}
+      >
+        <spriteMaterial
+          map={label.tex}
+          transparent
+          depthWrite={false}
+          opacity={selected || hovered ? 1 : 0.55}
+        />
+      </sprite>
     </group>
   );
 }
 
 export function SkyObjects({
   objects,
+  nameOf,
   selectedSlug,
   onSelect,
 }: {
   objects: ObjectDto[];
+  /** Localized label for an object (resolved outside the Canvas). */
+  nameOf(o: ObjectDto): string;
   selectedSlug: string | null;
   onSelect(o: ObjectDto): void;
 }) {
   return (
     <>
       {objects.map((o) => (
-        <Marker key={o.slug} object={o} selected={o.slug === selectedSlug} onSelect={onSelect} />
+        <Marker key={o.slug} object={o} label={nameOf(o)} selected={o.slug === selectedSlug} onSelect={onSelect} />
       ))}
     </>
   );

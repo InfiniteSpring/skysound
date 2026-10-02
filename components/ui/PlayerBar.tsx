@@ -1,23 +1,20 @@
 "use client";
 
 import { useAudio } from "@/components/audio/AudioProvider";
+import { useLang } from "@/components/i18n/LangProvider";
 import { useSky } from "@/components/sky/SkyProvider";
 import { GENRE_LIST } from "@/lib/audio/genres";
 import { midiToName } from "@/lib/audio/theory";
 
-const SCALE_RU: Record<string, string> = {
-  aeolian: "эолийский",
-  dorian: "дорийский",
-  mixolydian: "миксолидийский",
-  major: "мажор",
-  lydian: "лидийский",
-};
-
 export function PlayerBar() {
   const audio = useAudio();
   const sky = useSky();
+  const { t, nameOf } = useLang();
   const playing = audio.status === "playing";
   const music = audio.nowPlaying?.music;
+  // The engine knows the slug; the name follows the interface language.
+  const nowObject = audio.nowPlaying ? sky.objects.find((o) => o.slug === audio.nowPlaying!.slug) : undefined;
+  const nowName = nowObject ? nameOf(nowObject) : audio.nowPlaying?.name;
 
   const onPlay = () => {
     audio.unlock();
@@ -38,7 +35,7 @@ export function PlayerBar() {
           type="button"
           onClick={onPlay}
           disabled={audio.status === "unsupported"}
-          aria-label={playing ? "Пауза" : "Играть"}
+          aria-label={playing ? t.player.pause : t.player.play}
           data-testid="play-toggle"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-black transition hover:scale-105 disabled:opacity-40"
         >
@@ -58,32 +55,32 @@ export function PlayerBar() {
           {sky.loading ? (
             <div className="flex items-center gap-2 text-sm text-white/80" data-testid="loading-indicator">
               <span className="h-3 w-3 shrink-0 animate-spin rounded-full border border-white/30 border-t-white" />
-              <span className="truncate">Получаем «{sky.loading.name}» из научных каталогов…</span>
+              <span className="truncate">{t.player.loading(sky.loading.name)}</span>
             </div>
           ) : sky.error ? (
-            <button type="button" onClick={sky.dismissError} className="truncate text-left text-sm text-amber-300/90">
-              {sky.error} ✕
+            <button type="button" onClick={sky.dismissError} className="truncate text-start text-sm text-amber-300/90">
+              {t.errors[sky.error]} ✕
             </button>
           ) : audio.nowPlaying ? (
             <>
               <div className="truncate text-sm text-white" data-testid="now-playing">
-                {audio.nowPlaying.name}
+                {nowName}
               </div>
               {music && (
                 <div className="truncate text-xs text-white/45">
-                  {music.bpm} BPM · {midiToName(music.rootMidi).replace(/\d/, "")} {SCALE_RU[music.scale]} · реверб{" "}
-                  {music.reverbDecay} с
+                  {music.bpm} BPM · {midiToName(music.rootMidi).replace(/\d/, "")} {t.player.scales[music.scale]} ·{" "}
+                  {t.player.reverb} {music.reverbDecay} {t.player.sec}
                 </div>
               )}
             </>
           ) : (
             <div className="truncate text-sm text-white/55">
-              {audio.status === "unsupported" ? "Браузер не поддерживает Web Audio" : "Выберите объект на небе — и он зазвучит"}
+              {audio.status === "unsupported" ? t.player.unsupported : t.player.pick}
             </div>
           )}
         </div>
 
-        <div role="radiogroup" aria-label="Жанр" className="flex shrink-0 rounded-full bg-white/5 p-0.5 text-xs">
+        <div role="radiogroup" aria-label={t.player.genre} className="flex shrink-0 rounded-full bg-white/5 p-0.5 text-xs">
           {GENRE_LIST.map((g) => (
             <button
               key={g.id}
@@ -108,7 +105,7 @@ export function PlayerBar() {
           step={0.01}
           value={audio.volume}
           onChange={(e) => audio.setVolume(Number(e.target.value))}
-          aria-label="Громкость"
+          aria-label={t.player.volume}
           className="hidden w-24 accent-white sm:block"
         />
       </div>

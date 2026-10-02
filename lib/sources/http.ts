@@ -17,6 +17,7 @@ const LIMITS: Record<SourceId, { concurrency: number; minIntervalMs: number }> =
   gaia: { concurrency: 2, minIntervalMs: 250 },
   atnf: { concurrency: 1, minIntervalMs: 500 },
   jpl: { concurrency: 1, minIntervalMs: 300 },
+  wikidata: { concurrency: 2, minIntervalMs: 100 },
 };
 
 class Limiter {
@@ -63,6 +64,21 @@ function limiterFor(source: SourceId) {
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Wikimedia and CDS ask API clients to identify themselves with a way to reach the operator.
+ * CATALOG_CONTACT can be a URL or email; otherwise the public site URL is used.
+ */
+const USER_AGENT = `skysound/0.1 (+${process.env.CATALOG_CONTACT ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://github.com/skysound"})`;
+
+/** Retry-After in ms (seconds or HTTP date), capped so a request never stalls the UI for long. */
+function retryAfterMs(res: Response) {
+  const h = res.headers.get("retry-after");
+  if (!h) return 0;
+  const secs = Number(h);
+  const ms = Number.isFinite(secs) ? secs * 1000 : new Date(h).getTime() - Date.now();
+  return Math.min(Math.max(ms, 0), 5000);
+}
+
 function isRetryableStatus(status: number) {
   return status === 408 || status === 429 || status >= 500;
 }
@@ -71,18 +87,20 @@ function isRetryableStatus(status: number) {
 export async function request(url: string, opts: RequestOptions): Promise<Response> {
   const { source, timeoutMs = 15_000, retries = 2, init } = opts;
   let lastError: CatalogError | undefined;
+  let serverWait = 0;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
-    if (attempt > 0) await sleep(400 * 2 ** (attempt - 1) + Math.random() * 200);
+    if (attempt > 0) await sleep(Math.max(serverWait, 400 * 2 ** (attempt - 1) + Math.random() * 200));
     try {
       const res = await limiterFor(source).run(() =>
         fetch(url, {
           ...init,
           signal: AbortSignal.timeout(timeoutMs),
-          headers: { "User-Agent": "skysound/0.1 (space music MVP)", ...init?.headers },
+          headers: { "User-Agent": USER_AGENT, ...init?.headers },
         }),
       );
       if (res.ok) return res;
+      serverWait = retryAfterMs(res);
       lastError = new CatalogError(`${source} responded ${res.status}`, source, isRetryableStatus(res.status));
       if (!lastError.retryable) throw lastError;
     } catch (err) {

@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import type { Lang } from "../i18n/config";
 import type { LightCurve, ObjectType, Params, Position, RawBundle, Sources } from "../sources/types";
 
 export const objectStatus = pgEnum("object_status", ["ready", "fetching", "failed"]);
@@ -16,7 +17,10 @@ export const objects = pgTable(
     query: text("query").notNull(),
     name: text("name").notNull(),
     type: text("type").$type<ObjectType>(),
-    description: text("description"),
+    /** Localized display names, e.g. { ru: "Бетельгейзе" }; `name` is the English/catalog name. */
+    names: jsonb("names").$type<Partial<Record<Lang, string>>>().notNull().default({}),
+    /** Curated descriptions per language; others are generated from params at render time. */
+    descriptions: jsonb("descriptions").$type<Partial<Record<Lang, string>>>().notNull().default({}),
     position: jsonb("position").$type<Position>(),
     params: jsonb("params").$type<Params>().notNull().default({}),
     lightCurve: jsonb("light_curve").$type<LightCurve | null>(),

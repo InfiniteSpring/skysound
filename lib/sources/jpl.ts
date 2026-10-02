@@ -76,25 +76,41 @@ export function parseJpl(raw: JplRaw): JplParsed {
 
   const row = text.match(/\$\$SOE\s*\n\s*\S+\s+\S+\s+(-?[\d.]+)\s+(-?[\d.]+)\s+([\d.Ee+-]+)/);
 
-  const orbit = firstNumber(text, [
-    /Sidereal orb(?:it)?\.? per(?:iod|\.)?\s*=\s*([\d.]+)\s*(d)\b/i,
-    /Orbit(?:al)? period\s*=\s*([\d.]+)\s*(d)\b/i,
-    /Sidereal orb(?:it)?\.? per(?:iod|\.)?\s*=\s*([\d.]+)\s*(y|yr)\b/i,
-    /\bPER=\s*([\d.]+)()/, // small-body elements, Julian years
-  ]);
-  const orbitalPeriodDays = orbit ? (orbit.unit === "d" ? orbit.value : orbit.value * 365.25) : undefined;
+  // Horizons phrasing varies by body: "Sidereal orbit period = 84.01 y", "Sidereal orb. per., y = 0.615",
+  // "Orbital period ~ 1.77 d", or small-body elements "PER= 75.9" (Julian years).
+  const toDays = (v: number, unit: string | undefined) => (/^y/i.test(unit ?? "y") ? v * 365.25 : v);
+  let orbitalPeriodDays: number | undefined;
+  for (const re of [
+    /Sidereal orb(?:it)?\.?\s*per(?:iod|\.)?,\s*(y|d)\s*=\s*([\d.]+)/i,
+    /Sidereal orb(?:it)?\.?\s*per(?:iod|\.)?\s*=\s*([\d.]+)\s*(d|y|yr)\b/i,
+    /Orbit(?:al)? period\s*[=~]\s*([\d.]+)\s*(d|y|yr)\b/i,
+    /\bPER=\s*([\d.]+)()/,
+  ]) {
+    const m = text.match(re);
+    if (!m) continue;
+    const unitFirst = /^[yd]$/i.test(m[1]);
+    const v = Number(unitFirst ? m[2] : m[1]);
+    if (v > 0) {
+      orbitalPeriodDays = toDays(v, unitFirst ? m[1] : m[2] || "y");
+      break;
+    }
+  }
 
   let rotationPeriodS: number | undefined;
   const hms = text.match(/Sid(?:ereal)?\.? rot(?:ation|\.)? per(?:iod|\.)?\s*(?:\([^)]*\))?\s*=\s*(\d+)h\s*(\d+)m\s*([\d.]+)\s*s/i);
   if (hms) rotationPeriodS = Number(hms[1]) * 3600 + Number(hms[2]) * 60 + Number(hms[3]);
   rotationPeriodS ??= (() => {
-    const r = firstNumber(text, [
-      /(?:Adopted )?sid(?:ereal)?\.? rot(?:ation|\.)? per(?:iod|\.)?\s*(?:\([^)]*\))?\s*=\s*([\d.]+)\s*(d|h|hr|hrs)\b/i,
-      /ROTPER=\s*([\d.]+)()/,
-    ]);
-    if (r) return r.value * (r.unit === "d" ? 86400 : 3600);
-    const rate = firstNumber(text, [/rot\.? rate,?\s*\(?rad\/s\)?\s*=\s*([\d.Ee-]+)()/i]);
-    return rate ? (2 * Math.PI) / rate.value : undefined;
+    const r = text.match(
+      /(?:Adopted )?sid(?:ereal)?\.? rot(?:ation|\.)? per(?:iod|\.)?\s*(?:\([^)]*\))?\s*[=~]\s*([\d.]+)(?:\s*\+-\s*[\d.]+)?\s*(d|h|hr|hrs)\b/i,
+    );
+    if (r && Number(r[1]) > 0) return Number(r[1]) * (r[2] === "d" ? 86400 : 3600);
+    const rot = text.match(/ROTPER=\s*([\d.]+)/);
+    if (rot) return Number(rot[1]) * 3600;
+    // Tidally locked moons: rotation equals the orbit.
+    if (/Rotational period\s*=\s*Synchronous/i.test(text) && orbitalPeriodDays) return orbitalPeriodDays * 86400;
+    const rate = text.match(/rot\.? rate,?\s*\(?rad\/s\)?\s*=\s*(-?[\d.Ee-]+)/i);
+    const w = rate ? Math.abs(Number(rate[1])) : 0;
+    return w > 0 ? (2 * Math.PI) / w : undefined;
   })();
 
   const temp = firstNumber(text, [

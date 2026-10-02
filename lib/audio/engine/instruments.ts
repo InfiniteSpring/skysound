@@ -35,7 +35,7 @@ export function createInstruments(p: MusicParams, genre: GenrePreset, out: Layer
   if (genre.instruments.pad === "drone") {
     pad = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: PAD_OSC[p.timbre], count: 3, spread: 22 },
-      envelope: { attack: 2.4, decay: 1.5, sustain: 0.8, release: 5 },
+      envelope: { attack: 1.2, decay: 1.5, sustain: 0.8, release: 4 },
     });
   } else {
     pad = new Tone.PolySynth(Tone.FMSynth, {

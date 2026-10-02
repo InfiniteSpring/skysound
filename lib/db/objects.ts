@@ -69,8 +69,9 @@ export async function markReady(slug: string, obj: SpaceObject, raw: RawBundle) 
     .set({
       canonicalKey: obj.canonicalKey,
       name: obj.name,
+      names: obj.names,
+      descriptions: obj.descriptions,
       type: obj.type,
-      description: obj.description,
       position: obj.position,
       params: obj.params,
       lightCurve: obj.lightCurve,
@@ -92,8 +93,9 @@ export async function updateDerived(slug: string, obj: SpaceObject) {
     .update(objects)
     .set({
       name: obj.name,
+      names: obj.names,
+      descriptions: obj.descriptions,
       type: obj.type,
-      description: obj.description,
       position: obj.position,
       params: obj.params,
       lightCurve: obj.lightCurve,
@@ -123,17 +125,18 @@ export async function listReady() {
   return getDb().select().from(objects).where(eq(objects.status, "ready")).orderBy(objects.createdAt);
 }
 
-/** Trigram + substring search over stored, ready objects. */
+/** Trigram + substring search over stored, ready objects, in every language they are named in. */
 export async function searchReady(q: string, limit = 8) {
   const pattern = `%${q.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
-  const score = sql<number>`greatest(similarity(${objects.name}, ${q}), similarity(${objects.slug}, ${q}))`;
+  const localized = sql`exists (select 1 from jsonb_each_text(${objects.names}) as n where n.value ilike ${pattern})`;
+  const score = sql<number>`greatest(similarity(${objects.name}, ${q}), similarity(${objects.slug}, ${q}), case when ${localized} then 1 else 0 end)`;
   return getDb()
     .select()
     .from(objects)
     .where(
       and(
         eq(objects.status, "ready"),
-        or(ilike(objects.name, pattern), ilike(objects.slug, pattern), sql`${objects.name} % ${q}`),
+        or(ilike(objects.name, pattern), ilike(objects.slug, pattern), sql`${objects.name} % ${q}`, localized),
       ),
     )
     .orderBy(desc(score))

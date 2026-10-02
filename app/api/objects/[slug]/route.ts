@@ -2,6 +2,7 @@ import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { getOrFetchObject } from "@/lib/objects/service";
 import { tags } from "@/lib/objects/queries";
+import { DEFAULT_LANG, isLang } from "@/lib/i18n/config";
 import { isValidSlug } from "@/lib/slug";
 
 // The first request for an unknown object waits on catalogs (SIMBAD, Gaia, ATNF, Horizons).
@@ -15,7 +16,9 @@ const REF = /^(jpl|simbad|atnf|gaia|vsx):.{1,120}$/;
  *   202 { status: "pending" }      — another worker is still fetching; retry shortly
  *   404 { error: "not_found" }     — no catalog knows it
  *   503 { error, retryAfter }      — catalogs failed; retry after the cooldown
- * `?ref=simbad:* alf Ori` (from search results) tells the fetcher exactly what to load.
+ * `?ref=simbad:* alf Ori` (from search results) tells the fetcher exactly what to load;
+ * `&name=Бетельгейзе&lang=ru` sets the localized display name for a newly stored object
+ * (English names always come from the catalogs).
  */
 export async function GET(request: NextRequest, ctx: RouteContext<"/api/objects/[slug]">) {
   const { slug } = await ctx.params;
@@ -24,7 +27,16 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/objects/
   const ref = request.nextUrl.searchParams.get("ref") ?? undefined;
   if (ref && !REF.test(ref)) return NextResponse.json({ error: "bad_ref" }, { status: 400 });
 
-  const result = await getOrFetchObject(slug, { query: ref });
+  // Display name chosen in search (e.g. the Russian label from Wikidata) in the viewer's language;
+  // only used when the object is first stored.
+  const name = request.nextUrl.searchParams.get("name")?.trim().slice(0, 80) || undefined;
+  const langParam = request.nextUrl.searchParams.get("lang");
+  const lang = isLang(langParam) ? langParam : DEFAULT_LANG;
+
+  const result = await getOrFetchObject(slug, {
+    query: ref,
+    overrides: name && lang !== DEFAULT_LANG ? { names: { [lang]: name } } : undefined,
+  });
 
   switch (result.status) {
     case "ready":

@@ -13,7 +13,9 @@ export interface NowPlaying {
   music: MusicParams;
 }
 
-export const DEFAULT_FADE_S = 6;
+export const DEFAULT_FADE_S = 3;
+/** The very first track only needs a short fade-in from silence. */
+const FIRST_FADE_S = 0.8;
 
 /**
  * Owns the Tone context, the shared transport and the master chain. Must be constructed
@@ -28,6 +30,8 @@ export class AudioEngine {
   private fading = new Set<MusicScene>();
   private token = 0;
   private userVolumeDb = -3;
+  /** Pending transport stop after a pause fade; must not fire once playback resumes. */
+  private pauseTimer: ReturnType<typeof setTimeout> | null = null;
   nowPlaying: NowPlaying | null = null;
 
   constructor(context: AudioContext) {
@@ -41,12 +45,14 @@ export class AudioEngine {
   }
 
   /** Crossfade to `object` in `genre`. Safe to call rapidly: only the latest request wins. */
-  async play(object: AudioObject, genreId: GenreId, fadeS = DEFAULT_FADE_S) {
+  play(object: AudioObject, genreId: GenreId, fadeS = DEFAULT_FADE_S) {
     const token = ++this.token;
+    this.cancelPendingPause();
     const genre = GENRES[genreId];
     const music = mapToMusic(object, genre);
+    // Don't wait for the reverb impulse response: the dry signal starts right away and the
+    // reverb tail joins as soon as the IR is rendered (it is silent until then).
     const scene = new MusicScene(music, genre, this.bus);
-    await scene.ready;
     if (token !== this.token) {
       scene.dispose();
       return;
@@ -56,13 +62,14 @@ export class AudioEngine {
     if (transport.state !== "started") {
       transport.bpm.value = music.bpm;
       transport.start("+0.05");
-      this.volume.volume.rampTo(this.userVolumeDb, 0.3);
     } else {
       transport.bpm.rampTo(music.bpm, fadeS);
     }
+    // Undo a pause fade (possibly still in progress) — a new pick always plays audibly.
+    this.volume.volume.rampTo(this.userVolumeDb, 0.3);
 
     scene.start();
-    scene.fadeIn(this.current ? fadeS : 2);
+    scene.fadeIn(this.current ? fadeS : FIRST_FADE_S);
     if (this.current) {
       const old = this.current;
       this.fading.add(old);
@@ -78,11 +85,21 @@ export class AudioEngine {
   }
 
   pause() {
+    this.cancelPendingPause();
     this.volume.volume.rampTo(-80, 0.4);
-    setTimeout(() => Tone.getTransport().pause(), 450);
+    this.pauseTimer = setTimeout(() => {
+      this.pauseTimer = null;
+      Tone.getTransport().pause();
+    }, 450);
+  }
+
+  private cancelPendingPause() {
+    if (this.pauseTimer) clearTimeout(this.pauseTimer);
+    this.pauseTimer = null;
   }
 
   resume() {
+    this.cancelPendingPause();
     const ctx = Tone.getContext();
     if (ctx.state !== "running") void ctx.resume();
     Tone.getTransport().start();

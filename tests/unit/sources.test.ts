@@ -5,7 +5,8 @@ import { normalizePulsarName, parseAtnf } from "@/lib/sources/atnf";
 import { parseVsx, vsxAmplitude } from "@/lib/sources/aavso";
 import { classifyJpl, jplRef, parseJpl } from "@/lib/sources/jpl";
 import { modelLightCurve } from "@/lib/sources/lightcurve";
-import { formatPeriod, normalize } from "@/lib/sources/normalize";
+import { formatPeriod } from "@/lib/i18n/describe";
+import { normalize } from "@/lib/sources/normalize";
 import { classifyOtype, parseSesame, parseSimbad, prettifySimbadId } from "@/lib/sources/simbad";
 import { SpaceObjectSchema, type RawBundle } from "@/lib/sources/types";
 import { slugify, slugToQuery } from "@/lib/slug";
@@ -125,7 +126,6 @@ describe("normalize", () => {
     expect(SpaceObjectSchema.safeParse(obj).success).toBe(true);
     expect(obj.type).toBe(type);
     expect(obj.position.ra_deg).toBeGreaterThanOrEqual(0);
-    expect(obj.description.length).toBeGreaterThan(20);
     check(obj);
   });
 
@@ -135,10 +135,19 @@ describe("normalize", () => {
     expect(a).toEqual(b);
   });
 
-  it("applies curated overrides", () => {
-    const o = normalize(fixture("sun"), { slug: "sun", name: "Солнце", description: "Наша звезда." });
-    expect(o.name).toBe("Солнце");
-    expect(o.description).toBe("Наша звезда.");
+  it("applies curated names and descriptions per language", () => {
+    const o = normalize(fixture("sun"), {
+      slug: "sun",
+      names: { en: "The Sun", ru: "Солнце" },
+      descriptions: { ru: "Наша звезда." },
+    });
+    expect(o.name).toBe("The Sun");
+    expect(o.names.ru).toBe("Солнце");
+    expect(o.descriptions).toEqual({ ru: "Наша звезда." });
+  });
+
+  it("keeps catalog names when no English override is given", () => {
+    expect(normalize(fixture("betelgeuse"), { slug: "betelgeuse", names: { ru: "Бетельгейзе" } }).name).toBe("Betelgeuse");
   });
 
   it("rejects bundles with no primary data", () => {
@@ -161,8 +170,10 @@ describe("light curves", () => {
 
 describe("format", () => {
   it("formats periods across scales", () => {
-    expect(formatPeriod(0.0334)).toBe("33.4 мс");
-    expect(formatPeriod(5.37 * 86400)).toBe("5.37 сут");
-    expect(formatPeriod(11.86 * 365.25 * 86400)).toBe("11.9 лет");
+    expect(formatPeriod(0.0334, "ru")).toBe("33.4 мс");
+    expect(formatPeriod(5.37 * 86400, "ru")).toBe("5.37 сут");
+    expect(formatPeriod(11.86 * 365.25 * 86400, "ru")).toBe("11.9 лет");
+    expect(formatPeriod(0.0334, "en")).toBe("33.4 ms");
+    expect(formatPeriod(5.37 * 86400, "en")).toBe("5.37 days");
   });
 });

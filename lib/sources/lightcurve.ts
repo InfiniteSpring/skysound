@@ -30,7 +30,7 @@ export function modelLightCurve(vsxType: string, periodS: number): LightCurve | 
       kind: "model",
       period_s: periodS,
       samples: sample((p) => (p < 0.18 ? p / 0.18 : 1 - (p - 0.18) / 0.82) ** 1.4),
-      note: `Модель пульсирующей переменной (${vsxType}) по периоду VSX`,
+      shape: "pulsating",
     };
   }
   // Algol-type eclipsing binaries: flat with a deep primary and a shallow secondary eclipse.
@@ -41,7 +41,7 @@ export function modelLightCurve(vsxType: string, periodS: number): LightCurve | 
       kind: "model",
       period_s: periodS,
       samples: sample((p) => 1 - gauss(p, 0, width) - secondary * gauss(p, 0.5, width)),
-      note: `Модель затменной двойной (${vsxType}) по периоду VSX`,
+      shape: "eclipsing",
     };
   }
   // Semi-regular, Mira and slow irregular variables: smooth, slightly asymmetric wave.
@@ -50,14 +50,14 @@ export function modelLightCurve(vsxType: string, periodS: number): LightCurve | 
       kind: "model",
       period_s: periodS,
       samples: sample((p) => Math.sin(2 * Math.PI * p) + 0.3 * Math.sin(4 * Math.PI * p + 0.7)),
-      note: `Модель полуправильной переменной (${vsxType}) по периоду VSX`,
+      shape: "semiregular",
     };
   }
   return {
     kind: "model",
     period_s: periodS,
     samples: sample((p) => Math.sin(2 * Math.PI * p)),
-    note: `Синусоидальная модель (${vsxType})`,
+    shape: "sine",
   };
 }
 
@@ -67,6 +67,6 @@ export function pulsarProfile(periodS: number, interpulse: boolean): LightCurve 
     kind: "model",
     period_s: periodS,
     samples: sample((p) => gauss(p, 0.1, 0.02) + (interpulse ? 0.4 * gauss(p, 0.5, 0.025) : 0)),
-    note: interpulse ? "Модель профиля импульса с интеримпульсом" : "Модель профиля импульса",
+    shape: interpulse ? "pulse_interpulse" : "pulse",
   };
 }

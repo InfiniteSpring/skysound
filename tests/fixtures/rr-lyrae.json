@@ -1,0 +1,157 @@
+{
+ "simbad": {
+  "mainId": "V* RR Lyr",
+  "basic": {
+   "columns": [
+    "oid",
+    "main_id",
+    "ra",
+    "dec",
+    "otype",
+    "plx_value",
+    "sp_type"
+   ],
+   "rows": [
+    [
+     2950036,
+     "V* RR Lyr",
+     291.36630400221,
+     42.78435923839001,
+     "RR*",
+     3.9849,
+     "kA3hF0"
+    ]
+   ]
+  },
+  "ids": {
+   "columns": [
+    "id"
+   ],
+   "rows": [
+    [
+     "HIP 95497"
+    ],
+    [
+     "Gaia DR3 2125982599343482624"
+    ],
+    [
+     "HD 182989"
+    ]
+   ]
+  },
+  "teff": {
+   "columns": [
+    "teff"
+   ],
+   "rows": [
+    [
+     6710
+    ],
+    [
+     7530
+    ],
+    [
+     6284
+    ],
+    [
+     7475
+    ],
+    [
+     6640
+    ],
+    [
+     6620
+    ],
+    [
+     6304
+    ],
+    [
+     6250
+    ],
+    [
+     6222
+    ],
+    [
+     6070
+    ],
+    [
+     6304
+    ],
+    [
+     6304
+    ],
+    [
+     6222
+    ],
+    [
+     6315
+    ],
+    [
+     6328
+    ],
+    [
+     7008
+    ],
+    [
+     6070
+    ],
+    [
+     6210
+    ],
+    [
+     6790
+    ],
+    [
+     6640
+    ],
+    [
+     7130
+    ],
+    [
+     6040
+    ],
+    [
+     6210
+    ],
+    [
+     6620
+    ]
+   ]
+  },
+  "flux": {
+   "columns": [
+    "filter",
+    "flux"
+   ],
+   "rows": []
+  }
+ },
+ "gaia": {
+  "columns": [
+   "source_id",
+   "ra",
+   "dec",
+   "parallax",
+   "phot_g_mean_mag",
+   "teff_gspphot",
+   "lum_flame",
+   "distance_gspphot"
+  ],
+  "rows": [
+   [
+    2125982599343482600,
+    291.36564029422567,
+    42.783488792618705,
+    3.984858178256173,
+    7.6188045,
+    6163.496,
+    41.42477,
+    249.7401
+   ]
+  ]
+ },
+ "vsx": {
+  "target": "291.36630400221 +42.78435923839001",
+  "tsv": "#\n#   VizieR Astronomical Server vizier.cds.unistra.fr\n#    Date: 2026-10-17T18:12:39 [V7.6.1]\n#   In case of problem, please report to:\tcds-question@unistra.fr\n#\n#\n#Coosys\tJ2000:\teq_FK5 J2000\n#INFO\tservice_protocol=ASU\t  IVOID of the protocol through which the data was retrieved\n#INFO\trequest_date=2026-10-17T18:12:39\t  Query execution date\n#INFO\trequest=https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=B%2Fvsx%2Fvsx&-c=291.36630400221+%2B42.78435923839001&-c.rs=20&-out=Name%2CType%2Cmax%2Cmin%2Cf_min%2CPeriod%2CEpoch&-out.add=_r&-sort=_r&-out.max=5&-out.form=mini\t  Full request URL\n#INFO\tcontact=cds-question@unistra.fr\t  Email or URL to contact publisher\n#INFO\tserver_software=VizieR/7.6.1\t  Software version\n#INFO\tpublisher=CDS\t  Data centre that produced the VOTable\n#INFO\theader_format=mini\t\n#INFO\theader_format=mini\t\n\n#RESOURCE=yCat_102027\n#Name: B/vsx\n#Title: AAVSO International Variable Star Index VSX (Watson+, 2006-)\n#INFO\tivoid=ivo://cds.vizier/b/vsx\t    IVOID of underlying data collection\n#INFO\tdata_ivoid=ivo://cds.vizier/b/vsx\t    IVOID of underlying data collection\n#INFO\tcreator=Watson C.\t    First author or institution\n#INFO\tcites=bibcode:2006SASS...25...47W\t    Article or Data origin sources\n#INFO\tjournal=SASS\t    Journal name\n#INFO\toriginal_date=2006\t    Year of the article publication\n#INFO\treference_url=https://cdsarc.cds.unistra.fr/viz-bin/cat/B/vsx\t    Dataset landing page\n#INFO\tpublication_date=2026-10-05\t    Date of first publication in the data centre\n#INFO\trights_uri=https://cds.unistra.fr/vizier-org/licences_vizier.html\t    Licence URI\n#Table\tB_vsx_vsx:\n#Name: B/vsx/vsx\n#Title: Variable Star indeX, Version 2026-10-05 (\\originalcolumnnames)\n#Column\t_r\t(F5.2)\tDistance from center (291.36630 42.78436)[FK5/J2000]\t[ucd=pos.angDistance]\n#Column\tName\t(A30)\tVariable star identifier\t[ucd=meta.id;meta.main]\n#Column\tType\t(A30)\t? Variability type, ariability type, as in GCVS catalog Variability type (see details of VSX type list)\t[ucd=src.class]\n#Column\tmax\t(F7.3)\t[-6.0/25.2]? Magnitude at maximum, or amplitude (MagMax)\t[ucd=src.var.amplitude]\n#Column\tmin\t(F7.3)\t[-0.02/28.0]? Magnitude at minimum, or amplitude (MagMin)\t[ucd=src.var.amplitude]\n#Column\tf_min\t(A1)\t? Flag to indicate an amplitude (MinIsAmplitude)\t[ucd=meta.code;src.var.amplitude]\n#Column\tPeriod\t(F19.12)\t[0.0/27400.0]? Period of the variable in days\t[ucd=time.period]\n#Column\tEpoch\t(F14.5)\t? Epoch of maximum or minimum (HJD)\t[ucd=time.epoch]\n_r\tName\tType\tmax\tmin\tf_min\tPeriod\tEpoch\narcsec\t \t \tmag\tmag\t \td\td\n-----\t------------------------------\t------------------------------\t-------\t-------\t-\t-------------------\t--------------\n 0.00\tRR Lyr                        \tRRAB/BL                       \t  7.170\t  8.140\t \t     0.566775000000\t 2459422.52200\n\n\n"
+ }
+}

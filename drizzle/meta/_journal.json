@@ -15,6 +15,20 @@
       "when": 1792257469531,
       "tag": "0001_objects",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792262305677,
+      "tag": "0002_localized_names",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792262306380,
+      "tag": "0003_drop_description",
+      "breakpoints": true
     }
   ]
 }

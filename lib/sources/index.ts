@@ -5,9 +5,10 @@ import { gaia } from "./gaia";
 import { jpl, jplRef, classifyJpl } from "./jpl";
 import { parseSimbad, resolveName, simbad } from "./simbad";
 import { CatalogError, NotFoundError, type Candidate, type RawBundle } from "./types";
+import { needsLocalizedSearch, scriptLang, searchWikidata, type WikidataHit } from "./wikidata";
 
 export * from "./types";
-export { normalize, describe, formatPeriod, formatDistance, TYPE_LABELS_RU } from "./normalize";
+export { normalize } from "./normalize";
 export const adapters = { simbad, gaia, atnf, vsx, jpl };
 
 /** Secondary catalogs enrich an object; their failure must not sink the whole fetch. */
@@ -86,11 +87,59 @@ export async function resolveQuery(query: string): Promise<string> {
   throw new NotFoundError(query);
 }
 
+/**
+ * A Wikidata hit -> a catalog candidate under its localized name. Stars carry a SIMBAD id;
+ * comets/asteroids a JPL SPK-ID; planets and moons are matched by English label in Horizons.
+ */
+async function candidateFromWikidata(hit: WikidataHit): Promise<Candidate | null> {
+  const named = (c: Candidate): Candidate => ({ ...c, name: hit.label, slug: slugify(hit.label), hint: `${c.hint} · ${hit.enLabel ?? hit.id}` });
+  if (hit.simbad) {
+    return { source: "simbad", ref: `simbad:${hit.simbad}`, name: hit.label, slug: slugify(hit.label), hint: `SIMBAD · ${hit.simbad}` };
+  }
+  const key = hit.spk ?? hit.enLabel;
+  if (!key) return null;
+  const found = await jpl.search(key);
+  const exact = hit.spk ? found[0] : found.find((c) => c.name.toLowerCase() === key.toLowerCase());
+  if (exact) return named(exact);
+  // Last resort: SIMBAD's name resolver on the English label ("Sirius").
+  if (hit.spk) return null;
+  const [star] = await simbad.search(key);
+  return star ? named(star) : null;
+}
+
+/** Localized names ("Бетельгейзе", "火星", "Marte"): resolve through Wikidata, then the catalogs. */
+async function searchLocalized(q: string, lang: string): Promise<Candidate[]> {
+  const hits = await searchWikidata(q, scriptLang(q) ?? lang);
+  const settled = await Promise.allSettled(hits.slice(0, 4).map(candidateFromWikidata));
+  return settled.flatMap((r) => (r.status === "fulfilled" && r.value ? [r.value] : []));
+}
+
+/** Small TTL cache: typing produces many near-identical queries; catalogs have rate limits. */
+const searchCache = new Map<string, { at: number; value: Promise<Candidate[]> }>();
+const SEARCH_TTL_MS = 10 * 60_000;
+
 /** Catalog search for the UI. Each source is independent; one being down only thins the results. */
-export async function searchCatalogs(query: string): Promise<Candidate[]> {
+export function searchCatalogs(query: string, lang = "en"): Promise<Candidate[]> {
   const q = query.trim();
-  if (q.length < 2) return [];
-  const results = await Promise.allSettled([jpl.search(q), simbad.search(q), atnf.search(q), gaia.search(q)]);
+  if (q.length < 2) return Promise.resolve([]);
+  const key = `${lang}:${q.toLowerCase()}`;
+  const hit = searchCache.get(key);
+  if (hit && Date.now() - hit.at < SEARCH_TTL_MS) return hit.value;
+  const value = searchCatalogsUncached(q, lang);
+  searchCache.set(key, { at: Date.now(), value });
+  if (searchCache.size > 500) searchCache.delete(searchCache.keys().next().value!);
+  // Don't cache empty results caused by outages for long.
+  void value.then((r) => !r.length && searchCache.delete(key)).catch(() => searchCache.delete(key));
+  return value;
+}
+
+async function searchCatalogsUncached(q: string, lang: string): Promise<Candidate[]> {
+  // Localized hits first (named in the viewer's language); Latin queries also go to the catalogs directly.
+  const direct = /[^\x00-\x7f]/.test(q) ? [] : [jpl.search(q), simbad.search(q), atnf.search(q), gaia.search(q)];
+  const results = await Promise.allSettled([
+    ...(needsLocalizedSearch(q, lang) ? [searchLocalized(q, lang)] : []),
+    ...direct,
+  ]);
   const seen = new Set<string>();
   const out: Candidate[] = [];
   for (const r of results) {
@@ -100,8 +149,9 @@ export async function searchCatalogs(query: string): Promise<Candidate[]> {
     }
     for (const c of r.value) {
       const key = c.slug || slugify(c.name);
-      if (!key || seen.has(key)) continue;
+      if (!key || seen.has(key) || seen.has(c.ref)) continue;
       seen.add(key);
+      seen.add(c.ref);
       out.push(c);
     }
   }

@@ -4,6 +4,7 @@ import { parseGaia } from "./gaia";
 import { jplUrl, parseJpl } from "./jpl";
 import { modelLightCurve, pulsarProfile } from "./lightcurve";
 import { classifyOtype, parseSimbad, simbadUrl } from "./simbad";
+import type { Lang } from "../i18n/config";
 import {
   SpaceObjectSchema,
   type LightCurve,
@@ -21,20 +22,10 @@ export const SUN_LUMINOSITY_W = 3.828e26;
 
 export interface NormalizeOptions {
   slug: string;
-  name?: string;
-  description?: string;
+  /** Localized names; `names.en` also replaces the catalog name. */
+  names?: Partial<Record<Lang, string>>;
+  descriptions?: Partial<Record<Lang, string>>;
 }
-
-export const TYPE_LABELS_RU: Record<ObjectType, string> = {
-  star: "звезда",
-  planet: "планета",
-  pulsar: "пульсар",
-  variable_star: "переменная звезда",
-  star_system: "звёздная система",
-  moon: "спутник",
-  small_body: "малое тело",
-  other: "объект",
-};
 
 const round = (v: number | undefined, digits = 4) =>
   v === undefined ? undefined : Number(v.toPrecision(digits));
@@ -68,13 +59,34 @@ function fromJpl(bundle: Required<Pick<RawBundle, "jpl">>, opts: NormalizeOption
   });
   return {
     canonicalKey: `jpl:${bundle.jpl.command}`,
-    name: opts.name ?? p.name,
+    name: opts.names?.en ?? p.name,
     type,
     position: { ra_deg: p.ra, dec_deg: p.dec, epoch: bundle.jpl.date },
     params,
     lightCurve: null as LightCurve | null,
     sources: { jpl: { id: bundle.jpl.command, url: jplUrl(bundle.jpl.command) } } as Sources,
   };
+}
+
+/**
+ * Rough effective temperature from an MK spectral type ("M1.5Iab" -> ~3700 K), used only
+ * when no catalog measured Teff. Enough for timbre; not a physical claim.
+ */
+const TEFF_BY_CLASS: Record<string, [number, number]> = {
+  O: [45000, 31000],
+  B: [30000, 10500],
+  A: [9700, 7400],
+  F: [7200, 6000],
+  G: [5900, 5300],
+  K: [5200, 3900],
+  M: [3850, 2400],
+};
+export function teffFromSpectralType(sp: string | undefined): number | undefined {
+  const m = sp?.match(/^([OBAFGKM])(\d(?:\.\d+)?)?/);
+  if (!m) return undefined;
+  const [hot, cool] = TEFF_BY_CLASS[m[1]];
+  const sub = Math.min(9, Number(m[2] ?? 5));
+  return Math.round(hot + ((cool - hot) * sub) / 9);
 }
 
 function fromCatalogs(bundle: RawBundle, opts: NormalizeOptions) {
@@ -89,6 +101,7 @@ function fromCatalogs(bundle: RawBundle, opts: NormalizeOptions) {
   if (!s && !psr && !g) throw new Error("Bundle has no primary catalog data");
 
   let type: ObjectType = s ? classifyOtype(s.otype) : psr ? "pulsar" : "star";
+  if (type === "other" && s?.spectralType) type = "star";
   if (psr) type = "pulsar";
   else if (v) type = "variable_star";
 
@@ -105,7 +118,7 @@ function fromCatalogs(bundle: RawBundle, opts: NormalizeOptions) {
 
   const params: Params = compact({
     period_s: round(periodS, 8),
-    temperature_k: round(s?.teffK ?? g?.teffK),
+    temperature_k: round(s?.teffK ?? g?.teffK ?? (psr ? undefined : teffFromSpectralType(s?.spectralType))),
     luminosity: round(g?.luminositySun),
     distance_ly: round(distanceLy),
     magnitude_v: s?.vmag,
@@ -134,7 +147,7 @@ function fromCatalogs(bundle: RawBundle, opts: NormalizeOptions) {
 
   return {
     canonicalKey: s ? `simbad:${s.mainId}` : psr ? `atnf:${psr.jname}` : `gaia:${g!.sourceId}`,
-    name: opts.name ?? s?.displayName ?? (psr ? `PSR ${psr.jname}` : `Gaia DR3 ${g!.sourceId}`),
+    name: opts.names?.en ?? s?.displayName ?? (psr ? `PSR ${psr.jname}` : `Gaia DR3 ${g!.sourceId}`),
     type,
     position,
     params,
@@ -143,43 +156,13 @@ function fromCatalogs(bundle: RawBundle, opts: NormalizeOptions) {
   };
 }
 
-const fmt = (v: number, digits = 3) =>
-  v >= 1e5 || v < 1e-3 ? v.toExponential(2).replace("e+", "·10^") : String(Number(v.toPrecision(digits)));
-
-export function formatPeriod(seconds: number): string {
-  if (seconds < 1) return `${fmt(seconds * 1000)} мс`;
-  if (seconds < 120) return `${fmt(seconds)} с`;
-  if (seconds < 7200) return `${fmt(seconds / 60)} мин`;
-  if (seconds < 172_800) return `${fmt(seconds / 3600)} ч`;
-  if (seconds < 3 * 365.25 * 86400) return `${fmt(seconds / 86400)} сут`;
-  return `${fmt(seconds / (365.25 * 86400))} лет`;
-}
-
-export function formatDistance(ly: number): string {
-  if (ly < 0.01) return `${fmt(ly / LY_PER_AU)} а. е.`;
-  return `${fmt(ly)} св. лет`;
-}
-
-export function describe(o: Pick<SpaceObject, "name" | "type" | "params">): string {
-  const p = o.params;
-  const parts = [`${o.name} — ${TYPE_LABELS_RU[o.type]}`];
-  if (p.spectral_type) parts[0] += ` спектрального класса ${p.spectral_type}`;
-  const facts: string[] = [];
-  if (p.distance_ly) facts.push(`находится на расстоянии ${formatDistance(p.distance_ly)}`);
-  if (p.temperature_k) facts.push(`температура около ${Math.round(p.temperature_k)} K`);
-  if (o.type === "pulsar" && p.period_s) facts.push(`вращается с периодом ${formatPeriod(p.period_s)}`);
-  else if (o.type === "variable_star" && p.period_s)
-    facts.push(`меняет блеск с периодом ${formatPeriod(p.period_s)}${p.amplitude_mag ? ` на ${p.amplitude_mag} зв. вел.` : ""}`);
-  if (p.orbital_period_days) facts.push(`оборот вокруг Солнца занимает ${formatPeriod(p.orbital_period_days * 86400)}`);
-  return `${parts[0]}${facts.length ? ", " + facts.join(", ") : ""}. Музыка строится из этих параметров.`;
-}
-
 /** Pure: raw catalog responses -> validated SpaceObject. Used on fetch and when rebuilding from `raw`. */
 export function normalize(bundle: RawBundle, opts: NormalizeOptions): SpaceObject {
   const base = bundle.jpl ? fromJpl({ jpl: bundle.jpl }, opts) : fromCatalogs(bundle, opts);
   return SpaceObjectSchema.parse({
     ...base,
     slug: opts.slug,
-    description: opts.description ?? describe(base),
+    names: opts.names ?? {},
+    descriptions: opts.descriptions ?? {},
   });
 }

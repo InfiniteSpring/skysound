@@ -1,0 +1,95 @@
+{
+ "simbad": {
+  "mainId": "* omi Cet",
+  "basic": {
+   "columns": [
+    "oid",
+    "main_id",
+    "ra",
+    "dec",
+    "otype",
+    "plx_value",
+    "sp_type"
+   ],
+   "rows": [
+    [
+     1359450,
+     "* omi Cet",
+     34.83663375759996,
+     -2.9776376730729166,
+     "Mi*",
+     10.91,
+     "M5/6IIIe"
+    ]
+   ]
+  },
+  "ids": {
+   "columns": [
+    "id"
+   ],
+   "rows": [
+    [
+     "HIP 10826"
+    ],
+    [
+     "Gaia DR3 2493390319631956352"
+    ],
+    [
+     "HD  14386"
+    ],
+    [
+     "NAME Mira"
+    ],
+    [
+     "NAME Mira A"
+    ]
+   ]
+  },
+  "teff": {
+   "columns": [
+    "teff"
+   ],
+   "rows": []
+  },
+  "flux": {
+   "columns": [
+    "filter",
+    "flux"
+   ],
+   "rows": [
+    [
+     "V",
+     6.53
+    ]
+   ]
+  }
+ },
+ "gaia": {
+  "columns": [
+   "source_id",
+   "ra",
+   "dec",
+   "parallax",
+   "phot_g_mean_mag",
+   "teff_gspphot",
+   "lum_flame",
+   "distance_gspphot"
+  ],
+  "rows": [
+   [
+    2493390319631956500,
+    34.83664886460604,
+    -2.9787036389443307,
+    null,
+    3.5681472,
+    null,
+    null,
+    null
+   ]
+  ]
+ },
+ "vsx": {
+  "target": "34.83663375759996 -2.9776376730729166",
+  "tsv": "#\n#   VizieR Astronomical Server vizier.cds.unistra.fr\n#    Date: 2026-10-17T18:12:38 [V7.6.1]\n#   In case of problem, please report to:\tcds-question@unistra.fr\n#\n#\n#Coosys\tJ2000:\teq_FK5 J2000\n#INFO\tservice_protocol=ASU\t  IVOID of the protocol through which the data was retrieved\n#INFO\trequest_date=2026-10-17T18:12:38\t  Query execution date\n#INFO\trequest=https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=B%2Fvsx%2Fvsx&-c=34.83663375759996+-2.9776376730729166&-c.rs=20&-out=Name%2CType%2Cmax%2Cmin%2Cf_min%2CPeriod%2CEpoch&-out.add=_r&-sort=_r&-out.max=5&-out.form=mini\t  Full request URL\n#INFO\tcontact=cds-question@unistra.fr\t  Email or URL to contact publisher\n#INFO\tserver_software=VizieR/7.6.1\t  Software version\n#INFO\tpublisher=CDS\t  Data centre that produced the VOTable\n#INFO\theader_format=mini\t\n#INFO\theader_format=mini\t\n\n#RESOURCE=yCat_102027\n#Name: B/vsx\n#Title: AAVSO International Variable Star Index VSX (Watson+, 2006-)\n#INFO\tivoid=ivo://cds.vizier/b/vsx\t    IVOID of underlying data collection\n#INFO\tdata_ivoid=ivo://cds.vizier/b/vsx\t    IVOID of underlying data collection\n#INFO\tcreator=Watson C.\t    First author or institution\n#INFO\tcites=bibcode:2006SASS...25...47W\t    Article or Data origin sources\n#INFO\tjournal=SASS\t    Journal name\n#INFO\toriginal_date=2006\t    Year of the article publication\n#INFO\treference_url=https://cdsarc.cds.unistra.fr/viz-bin/cat/B/vsx\t    Dataset landing page\n#INFO\tpublication_date=2026-10-05\t    Date of first publication in the data centre\n#INFO\trights_uri=https://cds.unistra.fr/vizier-org/licences_vizier.html\t    Licence URI\n#Table\tB_vsx_vsx:\n#Name: B/vsx/vsx\n#Title: Variable Star indeX, Version 2026-10-05 (\\originalcolumnnames)\n#Column\t_r\t(F5.2)\tDistance from center ( 34.83663 -2.97764)[FK5/J2000]\t[ucd=pos.angDistance]\n#Column\tName\t(A30)\tVariable star identifier\t[ucd=meta.id;meta.main]\n#Column\tType\t(A30)\t? Variability type, ariability type, as in GCVS catalog Variability type (see details of VSX type list)\t[ucd=src.class]\n#Column\tmax\t(F7.3)\t[-6.0/25.2]? Magnitude at maximum, or amplitude (MagMax)\t[ucd=src.var.amplitude]\n#Column\tmin\t(F7.3)\t[-0.02/28.0]? Magnitude at minimum, or amplitude (MagMin)\t[ucd=src.var.amplitude]\n#Column\tf_min\t(A1)\t? Flag to indicate an amplitude (MinIsAmplitude)\t[ucd=meta.code;src.var.amplitude]\n#Column\tPeriod\t(F19.12)\t[0.0/27400.0]? Period of the variable in days\t[ucd=time.period]\n#Column\tEpoch\t(F14.5)\t? Epoch of maximum or minimum (HJD)\t[ucd=time.epoch]\n_r\tName\tType\tmax\tmin\tf_min\tPeriod\tEpoch\narcsec\t \t \tmag\tmag\t \td\td\n-----\t------------------------------\t------------------------------\t-------\t-------\t-\t-------------------\t--------------\n 0.05\tomi Cet                       \tM                             \t  2.000\t 10.100\t \t   331.300000000000\t 2458457.00000\n 0.59\tVZ Cet                        \t*                             \t  9.500\t 12.000\t \t  4750.000000000000\t 2433300.00000\n\n\n"
+ }
+}

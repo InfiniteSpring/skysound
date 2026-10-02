@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LANGS } from "../i18n/config";
 
 export const OBJECT_TYPES = [
   "star",
@@ -14,7 +15,7 @@ export const OBJECT_TYPES = [
 export const ObjectTypeSchema = z.enum(OBJECT_TYPES);
 export type ObjectType = z.infer<typeof ObjectTypeSchema>;
 
-export const SOURCE_IDS = ["simbad", "gaia", "atnf", "vsx", "jpl"] as const;
+export const SOURCE_IDS = ["simbad", "gaia", "atnf", "vsx", "jpl", "wikidata"] as const;
 export const SourceIdSchema = z.enum(SOURCE_IDS);
 export type SourceId = z.infer<typeof SourceIdSchema>;
 
@@ -52,6 +53,8 @@ export type Params = z.infer<typeof ParamsSchema>;
 /** Normalized flux samples over one period (0 = faintest, 1 = brightest). */
 export const LightCurveSchema = z.object({
   kind: z.enum(["model", "observed"]),
+  /** Template used for model curves; the UI turns it into a localized caption. */
+  shape: z.enum(["pulsating", "eclipsing", "semiregular", "sine", "pulse", "pulse_interpulse"]).optional(),
   period_s: positive,
   samples: z.array(z.number().min(0).max(1)).min(8),
   note: z.string().optional(),
@@ -69,9 +72,13 @@ export const SpaceObjectSchema = z.object({
   slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   /** Stable catalog identity, e.g. "jpl:599" or "simbad:* alf Ori" — prevents two slugs for one object. */
   canonicalKey: z.string().min(1),
+  /** Catalog / English display name. */
   name: z.string().min(1),
+  /** Localized display names (curated or chosen in search); falls back to `name`. */
+  names: z.partialRecord(z.enum(LANGS), z.string().min(1)),
+  /** Curated descriptions; objects without one get a generated description at render time. */
+  descriptions: z.partialRecord(z.enum(LANGS), z.string().min(1)),
   type: ObjectTypeSchema,
-  description: z.string(),
   position: PositionSchema,
   params: ParamsSchema,
   lightCurve: LightCurveSchema.nullable(),
