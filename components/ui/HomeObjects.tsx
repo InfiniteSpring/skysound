@@ -17,7 +17,7 @@ export function HomeObjects({ groups, label }: { groups: HomeGroup[]; label: str
   const [active, setActive] = useState(groups[0]?.key);
   return (
     <nav aria-label={label} className="mt-4">
-      <div role="tablist" className="flex gap-1 text-[11px]">
+      <div role="tablist" className="-mx-1 flex gap-1 overflow-x-auto px-1 text-[11px] [scrollbar-width:none]">
         {groups.map((g) => (
           <button
             key={g.key}
@@ -25,7 +25,7 @@ export function HomeObjects({ groups, label }: { groups: HomeGroup[]; label: str
             role="tab"
             aria-selected={g.key === active}
             onClick={() => setActive(g.key)}
-            className={`rounded-full px-2.5 py-1 transition-colors ${
+            className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 transition-colors ${
               g.key === active ? "bg-white/15 text-white" : "text-white/45 hover:text-white/80"
             }`}
           >

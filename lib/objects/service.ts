@@ -3,7 +3,7 @@ import type { Lang } from "../i18n/config";
 import type { ObjectRow } from "../db/schema";
 import { slugToQuery } from "../slug";
 import { fetchBundle, normalize, resolveQuery } from "../sources";
-import { CatalogError, NotFoundError, type RawBundle, type SpaceObject } from "../sources/types";
+import { CatalogError, NotFoundError, type ObjectType, type Params, type RawBundle, type SpaceObject } from "../sources/types";
 import { toDto, type ObjectDto } from "./dto";
 
 export type GetResult =
@@ -15,6 +15,8 @@ export type GetResult =
 export interface Overrides {
   names?: Partial<Record<Lang, string>>;
   descriptions?: Partial<Record<Lang, string>>;
+  type?: ObjectType;
+  params?: Partial<Params>;
 }
 
 /** Catalog access, injectable so tests can count calls without the network. */

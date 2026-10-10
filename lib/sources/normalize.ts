@@ -25,6 +25,10 @@ export interface NormalizeOptions {
   /** Localized names; `names.en` also replaces the catalog name. */
   names?: Partial<Record<Lang, string>>;
   descriptions?: Partial<Record<Lang, string>>;
+  /** Curated classification when catalogs file the object under something else (M87* is a galaxy). */
+  type?: ObjectType;
+  /** Curated parameters merged over catalog values (e.g. black hole masses, distances). */
+  params?: Partial<Params>;
 }
 
 const round = (v: number | undefined, digits = 4) =>
@@ -161,6 +165,8 @@ export function normalize(bundle: RawBundle, opts: NormalizeOptions): SpaceObjec
   const base = bundle.jpl ? fromJpl({ jpl: bundle.jpl }, opts) : fromCatalogs(bundle, opts);
   return SpaceObjectSchema.parse({
     ...base,
+    type: opts.type ?? base.type,
+    params: { ...base.params, ...opts.params },
     slug: opts.slug,
     names: opts.names ?? {},
     descriptions: opts.descriptions ?? {},

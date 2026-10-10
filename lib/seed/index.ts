@@ -3,7 +3,8 @@
  * Shared by scripts/seed.ts, scripts/rebuild.ts and generateStaticParams (seed pages are prerendered).
  */
 import { LANGS, type Lang } from "../i18n/config";
-import { SEED_REFS, type SeedSlug } from "./refs";
+import type { ObjectType, Params } from "../sources/types";
+import { SEED_OVERRIDES, SEED_REFS, type SeedSlug } from "./refs";
 import ar from "./texts/ar";
 import bn from "./texts/bn";
 import en from "./texts/en";
@@ -23,6 +24,8 @@ export interface SeedEntry {
   ref: string;
   names: Record<Lang, string>;
   descriptions: Record<Lang, string>;
+  type?: ObjectType;
+  params?: Partial<Params>;
 }
 
 export const SEED: SeedEntry[] = SEED_REFS.map(({ slug, ref }) => ({
@@ -30,6 +33,7 @@ export const SEED: SeedEntry[] = SEED_REFS.map(({ slug, ref }) => ({
   ref,
   names: Object.fromEntries(LANGS.map((l) => [l, TEXTS[l][slug][0]])) as Record<Lang, string>,
   descriptions: Object.fromEntries(LANGS.map((l) => [l, TEXTS[l][slug][1]])) as Record<Lang, string>,
+  ...SEED_OVERRIDES[slug],
 }));
 
 export const SEED_SLUGS = SEED.map((s) => s.slug);

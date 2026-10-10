@@ -24,6 +24,10 @@ interface SkyApi {
   /** Seconds until auto-switch moves on, or null when auto-switch is off / nothing plays. */
   nextSwitchIn: number | null;
   select(target: SelectTarget | ObjectDto): void;
+  /** Next track: follows the auto-switch order (random / in order / same type). */
+  next(): void;
+  /** Previous track: back through what was played, else the previous object in the list. */
+  prev(): void;
   /** Back to the whole sky (keeps the music playing). */
   goHome(): void;
   dismissError(): void;
@@ -57,10 +61,17 @@ export function SkyProvider({ initialObjects, children }: { initialObjects: Obje
   const [error, setError] = useState<SkyApi["error"]>(null);
   /**
    * Optimistic selection: the camera and music react to a click immediately, while the
-   * route (and its server render) catches up. It only applies while the path is unchanged,
-   * so back/forward navigation always wins.
+   * route (and its server render) catches up. It holds until the URL reaches the path it
+   * asked for — an earlier navigation landing in between (fast clicks) must not flip the
+   * view back — and back/forward navigation always wins.
    */
-  const [pending, setPending] = useState<{ slug: string | null; fromPath: string } | null>(null);
+  const [pending, setPending] = useState<{ slug: string | null; path: string } | null>(null);
+  if (pending && splitLocale(pathname).path === pending.path) setPending(null);
+  useEffect(() => {
+    const onPop = () => setPending(null);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   const abortRef = useRef<AbortController | null>(null);
 
   // Server list (refreshed by revalidation) plus anything fetched in this session.
@@ -70,24 +81,29 @@ export function SkyProvider({ initialObjects, children }: { initialObjects: Obje
     return [...bySlug.values()];
   }, [initialObjects, added]);
 
-  const selectedSlug = pending && pending.fromPath === pathname ? pending.slug : slugFromPath(pathname);
+  const selectedSlug = pending ? pending.slug : slugFromPath(pathname);
   const selected = useMemo(() => objects.find((o) => o.slug === selectedSlug) ?? null, [objects, selectedSlug]);
 
   const upsert = useCallback((o: ObjectDto) => setAdded((xs) => [...xs.filter((x) => x.slug !== o.slug), o]), []);
 
   const { play, unlock } = audio;
+  /** Objects left behind by switching, newest last (for "previous"). */
+  const backRef = useRef<string[]>([]);
+  const currentSlugRef = useRef<string | null>(null);
   const go = useCallback(
-    (o: ObjectDto) => {
-      setPending({ slug: o.slug, fromPath: pathname });
+    (o: ObjectDto, { remember = true }: { remember?: boolean } = {}) => {
+      const from = currentSlugRef.current;
+      if (remember && from && from !== o.slug) backRef.current = [...backRef.current.slice(-49), from];
+      setPending({ slug: o.slug, path: `/object/${o.slug}` });
       void play(o); // don't wait for navigation: in dev a route compile can take seconds
       router.push(href(`/object/${o.slug}`), { scroll: false });
     },
-    [pathname, play, router, href],
+    [play, router, href],
   );
 
   const goHome = useCallback(() => {
-    if (!slugFromPath(pathname) && !pending?.slug) return;
-    setPending({ slug: null, fromPath: pathname });
+    if (!(pending ? pending.slug : slugFromPath(pathname))) return;
+    setPending({ slug: null, path: "/" });
     router.push(href("/"), { scroll: false });
   }, [pathname, pending, router, href]);
 
@@ -142,6 +158,29 @@ export function SkyProvider({ initialObjects, children }: { initialObjects: Obje
     // eslint-disable-next-line react-hooks/exhaustive-deps -- react to selection/unlock, not to every status flip
   }, [selected?.slug, unlocked]);
 
+  const current = selected ?? objects.find((o) => o.slug === audio.nowPlaying?.slug) ?? null;
+  useEffect(() => {
+    currentSlugRef.current = current?.slug ?? null;
+  });
+
+  const next = useCallback(() => {
+    unlock();
+    const n = pickNext(objects, current, audio.settings.switchOrder);
+    if (n) go(n);
+  }, [unlock, objects, current, audio.settings.switchOrder, go]);
+
+  const prev = useCallback(() => {
+    unlock();
+    while (backRef.current.length) {
+      const slug = backRef.current.pop()!;
+      const o = objects.find((x) => x.slug === slug);
+      if (o && o.slug !== current?.slug) return go(o, { remember: false });
+    }
+    if (!objects.length) return;
+    const i = current ? objects.findIndex((o) => o.slug === current.slug) : 0;
+    go(objects[(i - 1 + objects.length) % objects.length], { remember: false });
+  }, [unlock, objects, current, go]);
+
   // Auto-switch: count listening time (only while playing) and move on when it runs out.
   const { settings, nowPlaying } = audio;
   const [elapsed, setElapsed] = useState({ slug: "", seconds: 0 });
@@ -170,8 +209,8 @@ export function SkyProvider({ initialObjects, children }: { initialObjects: Obje
   const nextSwitchIn = settings.autoSwitch && nowPlaying ? Math.max(0, settings.switchMinutes * 60 - listened) : null;
 
   const api = useMemo<SkyApi>(
-    () => ({ objects, selected, loading, error, nextSwitchIn, select, goHome, dismissError: () => setError(null), upsert }),
-    [objects, selected, loading, error, nextSwitchIn, select, goHome, upsert],
+    () => ({ objects, selected, loading, error, nextSwitchIn, select, next, prev, goHome, dismissError: () => setError(null), upsert }),
+    [objects, selected, loading, error, nextSwitchIn, select, next, prev, goHome, upsert],
   );
   return <SkyContext.Provider value={api}>{children}</SkyContext.Provider>;
 }

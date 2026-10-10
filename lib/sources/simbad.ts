@@ -95,6 +95,7 @@ export function classifyOtype(rawOtype: string): ObjectType {
   // Candidate types carry a "?" ("LP?" = long-period variable candidate): treat as the type itself.
   const otype = rawOtype.endsWith("?") ? `${rawOtype.slice(0, -1)}*`.replace(/\*\*$/, "*") : rawOtype;
   if (otype === "Psr") return "pulsar";
+  if (otype === "BH" || otype === "BH*") return "black_hole";
   if (/^(\*\*|SB\*|EB\*|Al\*|bL\*|WU\*|El\*|Cl\*|OpC|GlC|As\*)$/.test(otype)) return "star_system";
   if (/^(V\*|Pu\*|cC\*|dS\*|RR\*|Mi\*|LP\*|sr\*|RV\*|Ce\*|WV\*|Ir\*|Er\*|Ro\*|BY\*|RS\*|gD\*|SX\*|bC\*|Or\*|No\*|CV\*|DN\*)$/.test(otype))
     return "variable_star";

@@ -36,6 +36,11 @@ const fr: SeedTexts = {
   "psr-j0437-4715": ["Pulsar milliseconde J0437−4715", "Le pulsar milliseconde le plus proche et le plus brillant : un tour toutes les 5,76 ms, environ 170 par seconde. L’une des horloges les plus précises de l’Univers."],
   "geminga": ["Geminga", "Un pulsar proche, presque muet en radio mais brillant en rayons gamma. Il tourne environ quatre fois par seconde."],
   "hulse-taylor": ["Pulsar de Hulse-Taylor", "Un pulsar binaire dont l’orbite se resserre exactement comme le prévoit l’émission d’ondes gravitationnelles. Prix Nobel 1993."],
+  "sgr-a-star": ["Sagittarius A*", "Le trou noir supermassif au cœur de notre galaxie, 4,3 millions de fois la masse du Soleil. Son ombre a été photographiée par l’Event Horizon Telescope en 2022."],
+  "m87-star": ["M87*", "Le premier trou noir jamais photographié (2019) : 6,5 milliards de masses solaires au centre de la galaxie M87, qui lance un jet long de milliers d’années-lumière."],
+  "cygnus-x-1": ["Cygnus X-1", "Le premier trou noir identifié : environ 21 masses solaires qui arrachent du gaz à une supergéante bleue compagne tous les 5,6 jours."],
+  "v404-cygni": ["V404 Cygni", "Un trou noir d’environ 9 masses solaires qui se réveille toutes les quelques décennies par de violentes éruptions X, en se nourrissant d’une compagne orange."],
+  "gaia-bh3": ["Gaia BH3", "Le trou noir stellaire le plus massif connu dans notre galaxie — 33 Soleils —, découvert en 2024 grâce au mouvement de la vieille étoile qui tourne autour."],
 };
 
 export default fr;

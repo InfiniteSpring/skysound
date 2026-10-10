@@ -98,7 +98,7 @@ export function SearchBox() {
         role="combobox"
         aria-expanded={showList}
         aria-controls={listId}
-        className="w-full rounded-2xl border border-white/10 bg-[#0b0d18]/75 px-4 py-2 text-sm text-white placeholder:text-white/40 backdrop-blur-md outline-none transition-colors focus:border-white/30"
+        className="w-full rounded-2xl border border-white/10 bg-[#0b0d18]/50 px-4 py-2 text-sm text-white placeholder:text-white/40 backdrop-blur-md outline-none transition-colors focus:border-white/30"
       />
       {busy && (
         <span className="absolute end-4 top-1/2 h-3 w-3 -translate-y-1/2 animate-spin rounded-full border border-white/30 border-t-white" />
@@ -107,7 +107,7 @@ export function SearchBox() {
         <ul
           id={listId}
           role="listbox"
-          className="absolute inset-x-0 top-full mt-2 overflow-hidden rounded-2xl border border-white/10 bg-[#0b0d18]/95 py-1 text-sm shadow-2xl backdrop-blur-md"
+          className="absolute inset-x-0 top-full mt-2 overflow-hidden rounded-2xl border border-white/10 bg-[#0b0d18]/50 py-1 text-sm shadow-2xl backdrop-blur-md"
         >
           {options.length === 0 && (
             <li className="px-4 py-2 text-white/50">{busy ? t.search.searching : t.search.nothing}</li>

@@ -1,7 +1,7 @@
 import type { ScaleName } from "../theory";
 
-export type LayerName = "drums" | "bass" | "pad" | "lead" | "texture";
-export type GenreId = "ambient" | "lofi";
+export type LayerName = "drums" | "bass" | "pad" | "lead" | "texture" | "guitar";
+export type GenreId = "ambient" | "lofi" | "metal";
 
 export interface LayerConfig {
   enabled: boolean;
@@ -18,11 +18,12 @@ export interface GenrePreset {
   /** Scale degrees (0 = tonic). */
   chordProgressions: number[][];
   instruments: {
-    pad: "drone" | "keys";
-    bass: "sub" | "round";
-    lead: "glass" | "keys";
-    texture: "shimmer" | "vinyl";
-    drums: "none" | "boombap";
+    pad: "drone" | "keys" | "choir";
+    bass: "sub" | "round" | "grit";
+    lead: "glass" | "keys" | "bell";
+    texture: "shimmer" | "vinyl" | "ash";
+    drums: "none" | "boombap" | "room";
+    guitar: "none" | "heavy";
   };
   layers: Record<LayerName, LayerConfig>;
   rules: {
@@ -51,13 +52,14 @@ export const ambient: GenrePreset = {
     [0, 4, 5, 3],
     [0, 3, 5, 4],
   ],
-  instruments: { pad: "drone", bass: "sub", lead: "glass", texture: "shimmer", drums: "none" },
+  instruments: { pad: "drone", bass: "sub", lead: "glass", texture: "shimmer", drums: "none", guitar: "none" },
   layers: {
     drums: { enabled: false, gainDb: -18 },
     bass: { enabled: true, gainDb: -16 },
     pad: { enabled: true, gainDb: -14 },
     lead: { enabled: true, gainDb: -19 },
     texture: { enabled: true, gainDb: -24 },
+    guitar: { enabled: false, gainDb: -18 },
   },
   rules: { noteDensity: 0.18, swing: 0, phraseLength: 8, chordBars: 2, chordSize: 4 },
 };
@@ -74,16 +76,47 @@ export const lofi: GenrePreset = {
     [0, 3, 1, 4],
     [5, 3, 0, 4],
   ],
-  instruments: { pad: "keys", bass: "round", lead: "keys", texture: "vinyl", drums: "boombap" },
+  instruments: { pad: "keys", bass: "round", lead: "keys", texture: "vinyl", drums: "boombap", guitar: "none" },
   layers: {
     drums: { enabled: true, gainDb: -13 },
     bass: { enabled: true, gainDb: -14 },
     pad: { enabled: true, gainDb: -17 },
     lead: { enabled: true, gainDb: -20 },
     texture: { enabled: true, gainDb: -28 },
+    guitar: { enabled: false, gainDb: -18 },
   },
   rules: { noteDensity: 0.3, swing: 0.28, phraseLength: 4, chordBars: 1, chordSize: 4 },
 };
 
-export const GENRES: Record<GenreId, GenrePreset> = { ambient, lofi };
+/**
+ * Ambient metal (in the spirit of dark-fantasy soundtracks like Mortal Shell's): mostly
+ * space — a dark choir bed, a tolling bell, cold wind — with a guitar that changes
+ * character from phrase to phrase: clean ringing arpeggios, a high shimmer, an open
+ * crunchy chord, or a swelled high-gain wall with slow, heavy drums under it.
+ */
+export const metal: GenrePreset = {
+  id: "metal",
+  label: "Ambient metal",
+  bpmRange: [54, 72],
+  scales: ["phrygian", "harmonicMinor", "aeolian", "dorian"],
+  chordProgressions: [
+    [0, 1, 0, 5],
+    [0, 5, 3, 1],
+    [0, 0, 5, 4],
+    [0, 3, 1, 0],
+    [0, 6, 5, 1],
+  ],
+  instruments: { pad: "choir", bass: "grit", lead: "bell", texture: "ash", drums: "room", guitar: "heavy" },
+  layers: {
+    drums: { enabled: true, gainDb: -12 },
+    bass: { enabled: true, gainDb: -15 },
+    pad: { enabled: true, gainDb: -17 },
+    lead: { enabled: true, gainDb: -20 },
+    texture: { enabled: true, gainDb: -26 },
+    guitar: { enabled: true, gainDb: -11 },
+  },
+  rules: { noteDensity: 0.08, swing: 0, phraseLength: 8, chordBars: 2, chordSize: 3 },
+};
+
+export const GENRES: Record<GenreId, GenrePreset> = { ambient, lofi, metal };
 export const GENRE_LIST = Object.values(GENRES);

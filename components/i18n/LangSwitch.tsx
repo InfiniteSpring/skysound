@@ -35,7 +35,7 @@ export function LangSwitch() {
         aria-expanded={open}
         aria-controls={menuId}
         aria-label={t.language}
-        className="flex h-[38px] items-center gap-1.5 rounded-2xl border border-white/10 bg-[#0b0d18]/75 px-3 text-xs text-white/80 backdrop-blur-md transition-colors hover:border-white/25 hover:text-white"
+        className="flex h-[38px] items-center gap-1.5 rounded-2xl border border-white/10 bg-[#0b0d18]/50 px-3 text-xs text-white/80 backdrop-blur-md transition-colors hover:border-white/25 hover:text-white"
       >
         <svg aria-hidden width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
           <circle cx="8" cy="8" r="6.5" />
@@ -47,7 +47,7 @@ export function LangSwitch() {
         <ul
           id={menuId}
           role="menu"
-          className="absolute end-0 top-full z-30 mt-2 grid w-44 grid-cols-1 overflow-hidden rounded-2xl border border-white/10 bg-[#0b0d18]/95 py-1 text-sm shadow-2xl backdrop-blur-md"
+          className="absolute end-0 top-full z-30 mt-2 grid w-44 grid-cols-1 overflow-hidden rounded-2xl border border-white/10 bg-[#0b0d18]/50 py-1 text-sm shadow-2xl backdrop-blur-md"
         >
           {LANGS.map((l) => (
             <li key={l} role="none">

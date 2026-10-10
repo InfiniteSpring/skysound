@@ -1,0 +1,71 @@
+{
+ "simbad": {
+  "mainId": "M  87",
+  "basic": {
+   "columns": [
+    "oid",
+    "main_id",
+    "ra",
+    "dec",
+    "otype",
+    "plx_value",
+    "sp_type"
+   ],
+   "rows": [
+    [
+     1937204,
+     "M  87",
+     187.70593076725,
+     12.391123246083334,
+     "AGN",
+     null,
+     null
+    ]
+   ]
+  },
+  "ids": {
+   "columns": [
+    "id"
+   ],
+   "rows": [
+    [
+     "NAME M 87*"
+    ],
+    [
+     "NAME SMOKING GUN"
+    ],
+    [
+     "NAME Vir A"
+    ],
+    [
+     "NAME Virgo A"
+    ],
+    [
+     "NAME Virgo Galaxy"
+    ]
+   ]
+  },
+  "teff": {
+   "columns": [
+    "teff"
+   ],
+   "rows": []
+  },
+  "flux": {
+   "columns": [
+    "filter",
+    "flux"
+   ],
+   "rows": [
+    [
+     "V",
+     8.63
+    ]
+   ]
+  }
+ },
+ "vsx": {
+  "target": "187.70593076725 +12.391123246083334",
+  "tsv": "#\n#   VizieR Astronomical Server vizier.cds.unistra.fr\n#    Date: 2026-10-17T19:51:11 [V7.6.1]\n#   In case of problem, please report to:\tcds-question@unistra.fr\n#\n#\n#Coosys\tJ2000:\teq_FK5 J2000\n#INFO\tservice_protocol=ASU\t  IVOID of the protocol through which the data was retrieved\n#INFO\trequest_date=2026-10-17T19:51:12\t  Query execution date\n#INFO\trequest=https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=B%2Fvsx%2Fvsx&-c=187.70593076725+%2B12.391123246083334&-c.rs=20&-out=Name%2CType%2Cmax%2Cmin%2Cf_min%2CPeriod%2CEpoch&-out.add=_r&-sort=_r&-out.max=5&-out.form=mini\t  Full request URL\n#INFO\tcontact=cds-question@unistra.fr\t  Email or URL to contact publisher\n#INFO\tserver_software=VizieR/7.6.1\t  Software version\n#INFO\tpublisher=CDS\t  Data centre that produced the VOTable\n#INFO\theader_format=mini\t\n#INFO\theader_format=mini\t\n\n#RESOURCE=\n#Name:\n#Title:\n"
+ }
+}

@@ -8,7 +8,7 @@ const fr: Dictionary = {
   home: {
     title: "Écoutez le ciel",
     tagline: "Chaque objet joue ses propres données : la rotation donne le tempo, la chaleur le timbre, la distance l’écho.",
-    groups: { solar: "Système solaire", stars: "Étoiles", pulsars: "Pulsars" },
+    groups: { solar: "Système solaire", stars: "Étoiles", pulsars: "Pulsars", blackHoles: "Trous noirs" },
     objectsNav: "Objets",
   },
   search: {
@@ -23,6 +23,8 @@ const fr: Dictionary = {
   player: {
     play: "Lecture",
     pause: "Pause",
+    prev: "Précédent",
+    next: "Suivant",
     loading: (name) => `Récupération de « ${name} » dans les catalogues scientifiques…`,
     pick: "Choisissez un objet dans le ciel — il se mettra à sonner",
     unsupported: "Ce navigateur ne prend pas en charge Web Audio",
@@ -30,7 +32,7 @@ const fr: Dictionary = {
     volume: "Volume",
     reverb: "réverb",
     sec: "s",
-    scales: { aeolian: "mineur", dorian: "dorien", mixolydian: "mixolydien", major: "majeur", lydian: "lydien" },
+    scales: { phrygian: "phrygien", harmonicMinor: "mineur harmonique", aeolian: "mineur", dorian: "dorien", mixolydian: "mixolydien", major: "majeur", lydian: "lydien" },
   },
   settings: {
     title: "Réglages du son",
@@ -65,6 +67,7 @@ const fr: Dictionary = {
       distance: "Distance",
       magnitude: "Magnitude apparente",
       amplitude: "Amplitude",
+      mass: "Masse",
       coords: "Coordonnées (AD, Déc)",
       mag: "mag",
     },
@@ -87,9 +90,10 @@ const fr: Dictionary = {
     star_system: "système stellaire",
     moon: "lune",
     small_body: "petit corps",
+    black_hole: "trou noir",
     other: "objet",
   },
-  units: { ms: "ms", s: "s", min: "min", h: "h", d: "jours", yr: "ans", au: "UA", ly: "années-lumière" },
+  units: { ms: "ms", s: "s", min: "min", h: "h", d: "jours", yr: "ans", au: "UA", ly: "années-lumière", msun: "masses solaires" },
   describe: {
     lead: (name, type, spectral) => `${name} est ${/^(étoile|planète|lune)/.test(type) ? "une" : "un"} ${type}${spectral ? ` de classe spectrale ${spectral}` : ""}`,
     distance: (d) => `située à ${d}`,
@@ -106,6 +110,30 @@ const fr: Dictionary = {
     sine: (v) => `Courbe de lumière sinusoïdale modèle${v}`,
     pulse: () => "Profil d’impulsion modèle",
     pulse_interpulse: () => "Profil d’impulsion modèle avec interpulse",
+  },
+  about: {
+    button: "À propos",
+    title: "À propos du projet",
+    close: "Fermer",
+    howTitle: "Comment ça marche",
+    how: [
+      "Choisissez un objet dans le ciel : une planète, une étoile, un pulsar, une étoile variable ou un trou noir.",
+      "Ses vrais paramètres proviennent de catalogues scientifiques : périodes de rotation et d’orbite, période de pulsation, température, distance, variations d’éclat.",
+      "La musique est générée directement dans votre navigateur : les périodes fixent le tempo et le rythme, leurs rapports deviennent des intervalles musicaux, la température choisit le timbre et la gamme, la distance règle la profondeur de l’écho et la courbe de lumière façonne les nuances.",
+      "Un même objet sonne toujours de la même façon, et deux objets ne sonnent jamais pareil. Le ciel et les gros plans sont dessinés en temps réel avec des shaders WebGL.",
+    ],
+    sourcesTitle: "Données et services",
+    sources: {
+      simbad: "étoiles et autres objets hors du Système solaire (CDS, Strasbourg)",
+      gaia: "distances et températures stellaires précises (ESA)",
+      atnf: "périodes et paramètres des pulsars (CSIRO)",
+      vsx: "étoiles variables, via VizieR (AAVSO, CDS)",
+      jpl: "planètes, lunes et comètes (NASA/JPL)",
+      wikidata: "noms des objets dans toutes les langues",
+    },
+    builtWith: "Réalisé avec",
+    contactTitle: "Contacter l’auteur",
+    contactText: "Idées, bugs ou simplement envie de dire bonjour — écrivez-moi :",
   },
 };
 

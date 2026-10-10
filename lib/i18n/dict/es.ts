@@ -8,7 +8,7 @@ const es: Dictionary = {
   home: {
     title: "Escucha el cielo",
     tagline: "Cada objeto suena según sus datos: el giro marca el tempo, el calor el timbre, la distancia el eco.",
-    groups: { solar: "Sistema solar", stars: "Estrellas", pulsars: "Púlsares" },
+    groups: { solar: "Sistema solar", stars: "Estrellas", pulsars: "Púlsares", blackHoles: "Agujeros negros" },
     objectsNav: "Objetos",
   },
   search: {
@@ -23,6 +23,8 @@ const es: Dictionary = {
   player: {
     play: "Reproducir",
     pause: "Pausa",
+    prev: "Anterior",
+    next: "Siguiente",
     loading: (name) => `Obteniendo «${name}» de catálogos científicos…`,
     pick: "Elige un objeto en el cielo y sonará",
     unsupported: "Este navegador no admite Web Audio",
@@ -30,7 +32,7 @@ const es: Dictionary = {
     volume: "Volumen",
     reverb: "reverb",
     sec: "s",
-    scales: { aeolian: "menor", dorian: "dórico", mixolydian: "mixolidio", major: "mayor", lydian: "lidio" },
+    scales: { phrygian: "frigio", harmonicMinor: "menor armónica", aeolian: "menor", dorian: "dórico", mixolydian: "mixolidio", major: "mayor", lydian: "lidio" },
   },
   settings: {
     title: "Ajustes de sonido",
@@ -65,6 +67,7 @@ const es: Dictionary = {
       distance: "Distancia",
       magnitude: "Magnitud aparente",
       amplitude: "Amplitud",
+      mass: "Masa",
       coords: "Coordenadas (AR, Dec)",
       mag: "mag",
     },
@@ -87,9 +90,10 @@ const es: Dictionary = {
     star_system: "sistema estelar",
     moon: "luna",
     small_body: "cuerpo menor",
+    black_hole: "agujero negro",
     other: "objeto",
   },
-  units: { ms: "ms", s: "s", min: "min", h: "h", d: "días", yr: "años", au: "UA", ly: "años luz" },
+  units: { ms: "ms", s: "s", min: "min", h: "h", d: "días", yr: "años", au: "UA", ly: "años luz", msun: "masas solares" },
   describe: {
     lead: (name, type, spectral) => `${name} es ${/^estrella|^luna/.test(type) ? "una" : "un"} ${type}${spectral ? ` de clase espectral ${spectral}` : ""}`,
     distance: (d) => `a ${d} de distancia`,
@@ -106,6 +110,30 @@ const es: Dictionary = {
     sine: (v) => `Curva de luz sinusoidal modelo${v}`,
     pulse: () => "Perfil de pulso modelo",
     pulse_interpulse: () => "Perfil de pulso modelo con interpulso",
+  },
+  about: {
+    button: "Acerca de",
+    title: "Acerca del proyecto",
+    close: "Cerrar",
+    howTitle: "Cómo funciona",
+    how: [
+      "Elige un objeto del cielo: un planeta, una estrella, un púlsar, una estrella variable o un agujero negro.",
+      "Sus parámetros reales provienen de catálogos científicos: periodos de rotación y de órbita, periodo de pulsación, temperatura, distancia y cambios de brillo.",
+      "La música se genera en tu navegador: los periodos marcan el tempo y el ritmo, sus proporciones se convierten en intervalos musicales, la temperatura elige el timbre y la escala, la distancia define la profundidad del eco y la curva de luz da forma a la dinámica.",
+      "El mismo objeto siempre suena igual y no hay dos objetos que suenen igual. El cielo y los primeros planos se dibujan en tiempo real con shaders WebGL.",
+    ],
+    sourcesTitle: "Datos y servicios",
+    sources: {
+      simbad: "estrellas y otros objetos fuera del sistema solar (CDS, Estrasburgo)",
+      gaia: "distancias y temperaturas estelares precisas (ESA)",
+      atnf: "periodos y parámetros de púlsares (CSIRO)",
+      vsx: "estrellas variables, vía VizieR (AAVSO, CDS)",
+      jpl: "planetas, lunas y cometas (NASA/JPL)",
+      wikidata: "nombres de objetos en todos los idiomas",
+    },
+    builtWith: "Hecho con",
+    contactTitle: "Contactar con el autor",
+    contactText: "Ideas, errores o simplemente para saludar, escríbeme:",
   },
 };
 

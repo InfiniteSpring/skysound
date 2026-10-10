@@ -36,6 +36,11 @@ const pt: SeedTexts = {
   "psr-j0437-4715": ["Pulsar de milissegundos J0437−4715", "O pulsar de milissegundos mais próximo e brilhante: uma volta a cada 5,76 ms, cerca de 170 por segundo. Um dos relógios mais precisos do Universo."],
   "geminga": ["Geminga", "Um pulsar próximo, quase mudo em rádio mas brilhante em raios gama. Gira cerca de quatro vezes por segundo."],
   "hulse-taylor": ["Pulsar de Hulse-Taylor", "Um pulsar binário cuja órbita encolhe exatamente como prevê a emissão de ondas gravitacionais. Prêmio Nobel de 1993."],
+  "sgr-a-star": ["Sagitário A*", "O buraco negro supermassivo no coração da nossa galáxia, 4,3 milhões de vezes a massa do Sol. Sua sombra foi fotografada pelo Event Horizon Telescope em 2022."],
+  "m87-star": ["M87*", "O primeiro buraco negro fotografado (2019): 6,5 bilhões de massas solares no centro da galáxia M87, lançando um jato de milhares de anos-luz."],
+  "cygnus-x-1": ["Cygnus X-1", "O primeiro buraco negro identificado: cerca de 21 massas solares arrancando gás de uma supergigante azul companheira a cada 5,6 dias."],
+  "v404-cygni": ["V404 Cygni", "Um buraco negro de cerca de 9 massas solares que desperta a cada poucas décadas com violentas explosões de raios X, alimentando-se de uma companheira laranja."],
+  "gaia-bh3": ["Gaia BH3", "O buraco negro estelar mais massivo conhecido na nossa galáxia — 33 sóis —, descoberto em 2024 pelo balanço da velha estrela que o orbita."],
 };
 
 export default pt;

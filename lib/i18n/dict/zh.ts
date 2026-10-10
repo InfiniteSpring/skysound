@@ -7,7 +7,7 @@ const zh: Dictionary = {
   home: {
     title: "聆听星空",
     tagline: "每个天体都用自己的数据演奏：自转决定节奏，温度决定音色，距离决定回声。",
-    groups: { solar: "太阳系", stars: "恒星", pulsars: "脉冲星" },
+    groups: { solar: "太阳系", stars: "恒星", pulsars: "脉冲星", blackHoles: "黑洞" },
     objectsNav: "天体",
   },
   search: {
@@ -22,6 +22,8 @@ const zh: Dictionary = {
   player: {
     play: "播放",
     pause: "暂停",
+    prev: "上一个",
+    next: "下一个",
     loading: (name) => `正在从科学星表获取“${name}”…`,
     pick: "在星空中选择一个天体，它就会发出声音",
     unsupported: "此浏览器不支持 Web Audio",
@@ -29,7 +31,7 @@ const zh: Dictionary = {
     volume: "音量",
     reverb: "混响",
     sec: "秒",
-    scales: { aeolian: "小调", dorian: "多利亚调式", mixolydian: "混合利底亚调式", major: "大调", lydian: "利底亚调式" },
+    scales: { phrygian: "弗里几亚调式", harmonicMinor: "和声小调", aeolian: "小调", dorian: "多利亚调式", mixolydian: "混合利底亚调式", major: "大调", lydian: "利底亚调式" },
   },
   settings: {
     title: "声音设置",
@@ -64,6 +66,7 @@ const zh: Dictionary = {
       distance: "距离",
       magnitude: "视星等",
       amplitude: "变幅",
+      mass: "质量",
       coords: "坐标（赤经，赤纬）",
       mag: "星等",
     },
@@ -86,9 +89,10 @@ const zh: Dictionary = {
     star_system: "恒星系统",
     moon: "卫星",
     small_body: "小天体",
+    black_hole: "黑洞",
     other: "天体",
   },
-  units: { ms: "毫秒", s: "秒", min: "分钟", h: "小时", d: "天", yr: "年", au: "天文单位", ly: "光年" },
+  units: { ms: "毫秒", s: "秒", min: "分钟", h: "小时", d: "天", yr: "年", au: "天文单位", ly: "光年", msun: "倍太阳质量" },
   describe: {
     lead: (name, type, spectral) => `${name}是一颗${spectral ? `光谱型为 ${spectral} 的` : ""}${type}`,
     distance: (d) => `距离我们 ${d}`,
@@ -105,6 +109,30 @@ const zh: Dictionary = {
     sine: (v) => `正弦模型光变曲线${v}`,
     pulse: () => "模型脉冲轮廓",
     pulse_interpulse: () => "带中间脉冲的模型脉冲轮廓",
+  },
+  about: {
+    button: "关于",
+    title: "关于项目",
+    close: "关闭",
+    howTitle: "工作原理",
+    how: [
+      "在天空中选择一个天体：行星、恒星、脉冲星、变星或黑洞。",
+      "它的真实参数来自科学星表：自转和公转周期、脉动周期、温度、距离以及亮度变化。",
+      "音乐直接在浏览器中生成：周期决定速度和节奏，周期之比变成音程，温度选择音色和音阶，距离决定回声的深度，光变曲线塑造力度变化。",
+      "同一个天体总是发出同样的声音，而没有两个天体听起来相同。天空和特写画面由 WebGL 着色器实时绘制。",
+    ],
+    sourcesTitle: "数据与服务",
+    sources: {
+      simbad: "太阳系以外的恒星和其他天体（CDS，斯特拉斯堡）",
+      gaia: "精确的恒星距离和温度（ESA）",
+      atnf: "脉冲星周期和参数（CSIRO）",
+      vsx: "变星，经由 VizieR（AAVSO，CDS）",
+      jpl: "行星、卫星和彗星（NASA/JPL）",
+      wikidata: "各种语言的天体名称",
+    },
+    builtWith: "技术栈",
+    contactTitle: "联系作者",
+    contactText: "有想法、发现错误或只是想打个招呼——欢迎来信：",
   },
 };
 

@@ -22,6 +22,10 @@ export function formatDistance(ly: number, lang: Lang): string {
   return `${fmt(ly)} ${u.ly}`;
 }
 
+export function formatMass(msun: number, lang: Lang): string {
+  return `${fmt(msun)} ${getDictionary(lang).units.msun}`;
+}
+
 /** Generated description for objects without a curated text, using each language's templates. */
 export function describe(o: Pick<SpaceObject, "type" | "params">, name: string, lang: Lang): string {
   const t = getDictionary(lang);

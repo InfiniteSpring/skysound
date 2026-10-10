@@ -9,6 +9,7 @@ export const OBJECT_TYPES = [
   "star_system",
   "moon",
   "small_body",
+  "black_hole",
   "other",
 ] as const;
 
@@ -46,6 +47,8 @@ export const ParamsSchema = z.object({
   magnitude_v: z.number().finite().optional(),
   amplitude_mag: z.number().nonnegative().finite().optional(),
   spectral_type: z.string().optional(),
+  /** Mass in solar masses (curated for black holes; catalogs rarely give it). */
+  mass_msun: positive.optional(),
   variability_type: z.string().optional(),
 });
 export type Params = z.infer<typeof ParamsSchema>;

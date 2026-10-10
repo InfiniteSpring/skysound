@@ -9,7 +9,7 @@ const en = {
   home: {
     title: "Listen to the sky",
     tagline: "Every object plays its own data — spin sets the tempo, heat the timbre, distance the echo.",
-    groups: { solar: "Solar system", stars: "Stars", pulsars: "Pulsars" },
+    groups: { solar: "Solar system", stars: "Stars", pulsars: "Pulsars", blackHoles: "Black holes" },
     objectsNav: "Objects",
   },
   search: {
@@ -24,6 +24,8 @@ const en = {
   player: {
     play: "Play",
     pause: "Pause",
+    prev: "Previous",
+    next: "Next",
     loading: (name: string) => `Fetching “${name}” from scientific catalogs…`,
     pick: "Pick an object in the sky — and it will sound",
     unsupported: "This browser does not support Web Audio",
@@ -31,7 +33,7 @@ const en = {
     volume: "Volume",
     reverb: "reverb",
     sec: "s",
-    scales: { aeolian: "minor", dorian: "dorian", mixolydian: "mixolydian", major: "major", lydian: "lydian" } as Record<string, string>,
+    scales: { phrygian: "phrygian", harmonicMinor: "harmonic minor", aeolian: "minor", dorian: "dorian", mixolydian: "mixolydian", major: "major", lydian: "lydian" } as Record<string, string>,
   },
   settings: {
     title: "Sound settings",
@@ -66,6 +68,7 @@ const en = {
       distance: "Distance",
       magnitude: "Apparent magnitude",
       amplitude: "Amplitude",
+      mass: "Mass",
       coords: "Coordinates (RA, Dec)",
       mag: "mag",
     },
@@ -88,9 +91,10 @@ const en = {
     star_system: "star system",
     moon: "moon",
     small_body: "small body",
+    black_hole: "black hole",
     other: "object",
   } as Record<ObjectType, string>,
-  units: { ms: "ms", s: "s", min: "min", h: "h", d: "days", yr: "years", au: "AU", ly: "light-years" },
+  units: { ms: "ms", s: "s", min: "min", h: "h", d: "days", yr: "years", au: "AU", ly: "light-years", msun: "solar masses" },
   /** Templates for generated descriptions (objects without a curated text). */
   describe: {
     lead: (name: string, type: string, spectral?: string) =>
@@ -111,6 +115,30 @@ const en = {
     sine: (v: string) => `Sinusoidal model light curve${v}`,
     pulse: () => "Model pulse profile",
     pulse_interpulse: () => "Model pulse profile with an interpulse",
+  },
+  about: {
+    button: "About",
+    title: "About the project",
+    close: "Close",
+    howTitle: "How it works",
+    how: [
+      "Pick an object in the sky — a planet, star, pulsar, variable star or black hole.",
+      "Its real parameters come from scientific catalogs: rotation and orbital periods, pulsation period, temperature, distance, changes in brightness.",
+      "The music is generated right in your browser: periods set the tempo and rhythm, their ratios become musical intervals, temperature picks the timbre and scale, distance sets the depth of the echo, and the light curve shapes the dynamics.",
+      "The same object always sounds the same, and no two objects sound alike. The sky and the close-ups are drawn live with WebGL shaders.",
+    ],
+    sourcesTitle: "Data and services",
+    sources: {
+      simbad: "stars and other objects beyond the Solar System (CDS, Strasbourg)",
+      gaia: "precise star distances and temperatures (ESA)",
+      atnf: "pulsar periods and parameters (CSIRO)",
+      vsx: "variable stars, via VizieR (AAVSO, CDS)",
+      jpl: "planets, moons and comets (NASA/JPL)",
+      wikidata: "object names in every language",
+    },
+    builtWith: "Built with",
+    contactTitle: "Contact the author",
+    contactText: "Ideas, bugs or just want to say hi — write to me:",
   },
 };
 

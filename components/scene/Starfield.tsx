@@ -33,7 +33,9 @@ const fragment = /* glsl */ `
     float d = length(c);
     float a = smoothstep(0.5, 0.0, d);
     a *= a;
-    gl_FragColor = vec4(vColor, a * vAlpha * uOpacity);
+    // Colours are authored in sRGB; the HDR pipeline works in linear light. Bright stars
+    // exceed 1.0 slightly so bloom gives them a soft halo.
+    gl_FragColor = vec4(pow(vColor, vec3(2.2)) * 1.7, a * vAlpha * uOpacity);
   }
 `;
 

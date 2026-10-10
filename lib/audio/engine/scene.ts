@@ -1,5 +1,5 @@
 import * as Tone from "tone";
-import { composeBar, initialState, type BarPlan, type ComposerState } from "../composer";
+import { composeBar, initialState, type BarPlan, type ComposerState, type GuitarTone } from "../composer";
 import type { GenrePreset, LayerName } from "../genres";
 import type { MusicParams } from "../mapping";
 import { midiToFreq } from "../theory";
@@ -25,6 +25,9 @@ export class MusicScene {
   private bassFreeAt = 0;
   private state: ComposerState;
   private disposed = false;
+  /** The guitar's own reverb send, so each phrase can sit closer or further away. */
+  private guitarSpace: Tone.Gain | null = null;
+  private tone: GuitarTone | null = null;
 
   constructor(
     readonly params: MusicParams,
@@ -56,8 +59,14 @@ export class MusicScene {
       bass: layer("bass", { reverb: false, delay: false }),
       lead: layer("lead", { reverb: true, delay: true }),
       texture: layer("texture", { reverb: true, delay: true }),
-      drums: layer("drums", { reverb: false, delay: false }),
+      // Metal drums sit in a big room; the other kits stay dry.
+      drums: layer("drums", { reverb: genre.id === "metal", delay: false }),
+      guitar: layer("guitar", { reverb: false, delay: false }),
     };
+    if (genre.layers.guitar.enabled) {
+      this.guitarSpace = new Tone.Gain(0.5).connect(this.reverb);
+      this.layers.guitar.connect(this.guitarSpace);
+    }
 
     this.inst = createInstruments(p, genre, { ...this.layers, filter: this.filter });
     this.state = initialState(p);
@@ -93,6 +102,7 @@ export class MusicScene {
       ...Object.values(this.layers),
       this.filter,
       this.delaySend,
+      ...(this.guitarSpace ? [this.guitarSpace] : []),
       this.delay,
       this.reverbSend,
       this.reverb,
@@ -109,7 +119,7 @@ export class MusicScene {
     const spb = 60 / Tone.getTransport().bpm.value;
     this.applyDynamics(plan, time, spb);
 
-    const { pad, bass, lead, texture, drums, vinyl } = this.inst;
+    const { pad, bass, lead, texture, guitar, drums, vinyl } = this.inst;
     const at = (beats: number) => time + beats * spb;
     for (const n of plan.pad) pad.triggerAttackRelease(midiToFreq(n.midi), n.dur * spb, at(n.time), n.vel);
     for (const n of plan.bass) {
@@ -122,16 +132,37 @@ export class MusicScene {
     }
     for (const n of plan.lead) lead.triggerAttackRelease(midiToFreq(n.midi), n.dur * spb, at(n.time), n.vel);
     for (const n of plan.texture) texture.triggerAttackRelease(midiToFreq(n.midi), n.dur * spb, at(n.time), n.vel);
+    if (guitar) {
+      if (plan.guitarTone) this.setGuitarTone(plan.guitarTone, time);
+      for (const n of plan.guitar) guitar.dirty.triggerAttackRelease(midiToFreq(n.midi), n.dur * spb, at(n.time), n.vel);
+      for (const n of plan.clean) guitar.clean.triggerAttackRelease(midiToFreq(n.midi), n.dur * spb, at(n.time), n.vel);
+    }
     if (drums) {
       for (const h of plan.drums.kick) drums.kick.triggerAttackRelease("C1", 0.3, at(h.time), h.vel);
       for (const h of plan.drums.snare) drums.snare.triggerAttackRelease(0.15, at(h.time), h.vel);
       for (const h of plan.drums.hat) drums.hat.triggerAttackRelease(0.03, at(h.time), h.vel);
+      if (drums.crash) for (const h of plan.drums.crash) drums.crash.triggerAttackRelease(0.5, at(h.time), h.vel);
     }
     if (vinyl) {
       // Random crackle, scheduled in time order (a mono NoiseSynth can't go back in time).
       const beats = Array.from({ length: 3 + Math.floor(Math.random() * 6) }, () => Math.random() * 4).sort((a, b) => a - b);
       for (const b of beats) vinyl.click.triggerAttackRelease(0.005, at(b), 0.2 + Math.random() * 0.5);
     }
+  }
+
+  /** New phrase character: gain, attack (pick vs. swell) and how far away it sounds. */
+  private setGuitarTone(tone: GuitarTone, time: number) {
+    const g = this.inst.guitar;
+    const prev = this.tone;
+    if (!g || (prev && prev.style === tone.style)) return;
+    this.tone = tone;
+    if (tone.drive > 0) {
+      g.drive.distortion = tone.drive;
+      g.level.gain.setValueAtTime(1 - 0.45 * tone.drive, time); // more gain, more output: even it out
+    }
+    g.dirty.set({ envelope: { attack: tone.swell ? 1.6 : 0.004 } });
+    g.clean.set({ envelope: { attack: tone.swell ? 0.5 : 0.003 } });
+    this.guitarSpace?.gain.linearRampToValueAtTime(tone.space, time + 2);
   }
 
   /** Light curve -> level, brightness filter and reverb amount, ramped per beat. */

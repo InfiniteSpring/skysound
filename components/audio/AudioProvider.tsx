@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { AudioEngine, AudioObject, NowPlaying } from "@/lib/audio/engine";
-import type { GenreId } from "@/lib/audio/genres";
+import { GENRES, type GenreId } from "@/lib/audio/genres";
 
 type Status = "locked" | "starting" | "playing" | "paused" | "unsupported";
 
@@ -69,7 +69,7 @@ function store(key: string, value: unknown) {
   }
 }
 
-const isGenre = (v: unknown): v is GenreId => v === "ambient" || v === "lofi";
+const isGenre = (v: unknown): v is GenreId => typeof v === "string" && v in GENRES;
 const isVolume = (v: unknown): v is number => typeof v === "number" && v >= 0 && v <= 1;
 
 export function sanitizeSettings(v: unknown): AudioSettings {

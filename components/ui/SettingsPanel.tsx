@@ -52,10 +52,10 @@ export function SettingsPanel() {
   return (
     <aside
       aria-label={t.settings.title}
-      className="pointer-events-auto fixed bottom-24 end-3 z-20 w-[calc(100%-1.5rem)] max-w-sm sm:end-4"
+      className="pointer-events-auto w-full self-end sm:max-w-sm"
       data-testid="settings-panel"
     >
-      <div className="rounded-2xl border border-white/10 bg-[#0b0d18]/75 backdrop-blur-md">
+      <div className="rounded-2xl border border-white/10 bg-[#0b0d18]/50 backdrop-blur-md">
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}

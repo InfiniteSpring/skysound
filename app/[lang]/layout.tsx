@@ -10,6 +10,8 @@ import { PlayerBar } from "@/components/ui/PlayerBar";
 import { SearchBox } from "@/components/ui/SearchBox";
 import { SettingsPanel } from "@/components/ui/SettingsPanel";
 import { Brand } from "@/components/ui/Brand";
+import { BottomDock } from "@/components/ui/BottomDock";
+import { AboutProvider, AboutPush, AboutSheet } from "@/components/ui/About";
 import { dirOf, HTML_LOCALE, isLang, LANGS, localizePath } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getSkyObjects } from "@/lib/objects/queries";
@@ -50,19 +52,26 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
         <LangProvider lang={lang}>
           <AudioProvider>
             <SkyProvider initialObjects={objects}>
-              <SkyBackground />
-              <div className="pointer-events-none fixed inset-0 z-10 flex flex-col">
-                <header className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
-                  <Brand />
-                  <div className="flex flex-1 items-center justify-end gap-2">
-                    <SearchBox />
-                    <LangSwitch />
+              <AboutProvider>
+                <SkyBackground />
+                <AboutPush>
+                  <div className="pointer-events-none fixed inset-0 z-10 flex flex-col">
+                    <header className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+                      <Brand />
+                      <div className="flex flex-1 items-center justify-end gap-2">
+                        <SearchBox />
+                        <LangSwitch />
+                      </div>
+                    </header>
+                    <main className="flex min-h-0 flex-1 flex-col px-3 pb-[calc(var(--dock-h,9rem)+0.25rem)] sm:px-4 lg:pb-24">{children}</main>
                   </div>
-                </header>
-                <main className="flex min-h-0 flex-1 flex-col px-3 pb-24 sm:px-4">{children}</main>
-              </div>
-              <SettingsPanel />
-              <PlayerBar />
+                  <BottomDock>
+                    <SettingsPanel />
+                    <PlayerBar />
+                  </BottomDock>
+                </AboutPush>
+                <AboutSheet />
+              </AboutProvider>
             </SkyProvider>
           </AudioProvider>
         </LangProvider>

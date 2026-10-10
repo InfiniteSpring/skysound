@@ -38,6 +38,8 @@ export const TYPE_DEFAULTS: Record<ObjectType, Required<Pick<Params, "temperatur
   star_system: { temperature_k: 7000, distance_ly: 300, period_s: 3 * 86400 },
   moon: { temperature_k: 100, distance_ly: 3e-5, period_s: 27 * 86400 },
   small_body: { temperature_k: 150, distance_ly: 3e-5, period_s: 4 * 365.25 * 86400 },
+  // Sgr A* flares quasi-periodically on ~20-minute timescales.
+  black_hole: { temperature_k: 1500, distance_ly: 26_000, period_s: 20 * 60 },
   other: { temperature_k: 5000, distance_ly: 1000, period_s: 86400 },
 };
 
@@ -62,7 +64,7 @@ export function periodToBpm(periodS: number, [lo, hi]: [number, number]) {
 /** The period that drives rhythm: spin/pulsation for compact or variable objects, orbit for bodies. */
 export function rhythmPeriod(o: Pick<SpaceObject, "type" | "params">) {
   const p = o.params;
-  if (o.type === "pulsar" || o.type === "variable_star" || o.type === "star_system") {
+  if (o.type === "pulsar" || o.type === "variable_star" || o.type === "star_system" || o.type === "black_hole") {
     return p.period_s ?? TYPE_DEFAULTS[o.type].period_s;
   }
   if (p.orbital_period_days) return p.orbital_period_days * 86400;
@@ -108,6 +110,7 @@ export function depthFromDistance(ly: number) {
 
 function timbreFor(brightness: number, type: ObjectType): Timbre {
   if (type === "pulsar") return "bell";
+  if (type === "black_hole") return "dark";
   if (brightness < 0.35) return "dark";
   if (brightness < 0.72) return "warm";
   return "glass";
@@ -141,7 +144,13 @@ function dynamicsFor(o: Pick<SpaceObject, "type" | "params" | "lightCurve">, bpm
   return { curve, bars, depth: 0.15, kind: "default" as const };
 }
 
-const DENSITY_BY_TYPE: Partial<Record<ObjectType, number>> = { pulsar: 1.3, planet: 0.8, small_body: 0.7, moon: 0.7 };
+const DENSITY_BY_TYPE: Partial<Record<ObjectType, number>> = {
+  pulsar: 1.3,
+  planet: 0.8,
+  small_body: 0.7,
+  moon: 0.7,
+  black_hole: 0.5,
+};
 
 export function mapToMusic(o: Pick<SpaceObject, "slug" | "type" | "params" | "lightCurve">, genre: GenrePreset): MusicParams {
   const defaults = TYPE_DEFAULTS[o.type];
@@ -151,7 +160,8 @@ export function mapToMusic(o: Pick<SpaceObject, "slug" | "type" | "params" | "li
   const { bpm, octaves } = periodToBpm(rhythmPeriod(o), genre.bpmRange);
   const { semitones, progressionIndex } = harmonyFromRatio(o);
 
-  const brightness = brightnessFromTemperature(temperature);
+  // Black holes sound dark whatever their companion star's temperature.
+  const brightness = o.type === "black_hole" ? Math.min(0.25, brightnessFromTemperature(temperature)) : brightnessFromTemperature(temperature);
   const depth = depthFromDistance(distance);
   const scale = genre.scales[Math.min(genre.scales.length - 1, Math.floor(brightness * genre.scales.length))];
 

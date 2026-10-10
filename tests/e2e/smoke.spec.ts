@@ -128,12 +128,124 @@ test("a click on empty sky or Escape returns to the whole sky", async ({ page })
   await expect(page).toHaveURL(/\/object\/sirius$/);
   // A plain click on empty sky does.
   await page.mouse.click(1200, 140);
-  await expect(page).toHaveURL(/localhost:3000\/$/);
+  await expect(page).toHaveURL(/localhost:\d+\/$/);
 
   await page.goto("/ru/object/vega");
   await expect(objectName(page)).toHaveText("Вега");
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/\/ru$/);
+});
+
+test("selecting an object zooms the telescope into its animated close-up; leaving fades it out", async ({ page }) => {
+  const errors = collectErrors(page);
+  const closeUp = () =>
+    page.evaluate(() => (window as unknown as { __skysoundCloseUp?: () => { kind: string; fade: number } }).__skysoundCloseUp?.());
+
+  await page.goto("/object/sgr-a-star");
+  await expect(objectName(page)).toHaveText("Sagittarius A*");
+  await expect.poll(async () => (await closeUp())?.kind, { timeout: 10_000 }).toBe("black_hole");
+  await expect.poll(async () => (await closeUp())?.fade ?? 0, { timeout: 10_000 }).toBeGreaterThan(0.95);
+
+  // Scrolling out works even right after arriving (the flight hands zoom to the user).
+  await page.mouse.move(800, 360);
+  for (let i = 0; i < 4; i++) await page.mouse.wheel(0, 400);
+
+  // Leaving for the whole sky fades the close-up away.
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(/localhost:\d+\/$/);
+  await expect.poll(async () => (await closeUp())?.fade ?? 0, { timeout: 10_000 }).toBeLessThan(0.05);
+
+  // Black holes get their own tab on the home page.
+  await page.getByRole("tab", { name: /Black holes/ }).click();
+  await expect(page.getByRole("link", { name: "M87*" })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("clicking the zoomed object keeps it selected; clicking empty sky goes home", async ({ page }) => {
+  const errors = collectErrors(page);
+  const closeUp = () =>
+    page.evaluate(() => (window as unknown as { __skysoundCloseUp?: () => { slug: string; fade: number } }).__skysoundCloseUp?.());
+
+  await page.goto("/object/saturn");
+  await expect.poll(async () => (await closeUp())?.fade ?? 0, { timeout: 10_000 }).toBeGreaterThan(0.95);
+
+  // The subject sits right of centre (shifted clear of the info panel).
+  const { w, h } = await page.evaluate(() => ({ w: innerWidth, h: innerHeight }));
+  const shift = w > 900 ? Math.min(0.17 * w, 260) : 0;
+  await page.mouse.click(w / 2 + shift, h / 2);
+  await page.waitForTimeout(800);
+  await expect(page).toHaveURL(/\/object\/saturn$/);
+
+  await page.mouse.click(w - 40, h * 0.3);
+  await expect(page).toHaveURL(/localhost:\d+\/$/);
+  expect(errors).toEqual([]);
+});
+
+test("about slides up over the sky and closes without leaving the object", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/object/vega");
+  const sheet = page.getByTestId("about-sheet");
+  await expect(sheet).toBeHidden();
+  await page.getByTestId("about-toggle").click();
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByRole("link", { name: "mikita.loverau.main@gmail.com" })).toHaveAttribute("href", "mailto:mikita.loverau.main@gmail.com");
+  await expect(sheet.getByRole("link", { name: "@UemDiHaskl" })).toHaveAttribute("href", "https://t.me/UemDiHaskl");
+  await expect(sheet.getByRole("link", { name: "SIMBAD" })).toBeVisible();
+
+  // Escape closes the sheet only; the selected object stays.
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+  await expect(page).toHaveURL(/\/object\/vega$/);
+  await expect(page.getByTestId("about-toggle")).toBeFocused();
+  expect(errors).toEqual([]);
+});
+
+test("next and previous switch tracks; previous goes back to what was playing", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/object/vega");
+  await byId(page, "next-track").click();
+  await expect(page).not.toHaveURL(/\/object\/vega$/);
+  await expect(byId(page, "now-playing")).not.toHaveText("Vega");
+  await byId(page, "prev-track").click();
+  await expect(page).toHaveURL(/\/object\/vega$/);
+  await expect(byId(page, "now-playing")).toHaveText("Vega");
+  expect(errors).toEqual([]);
+});
+
+test("space pauses and resumes the music", async ({ page }) => {
+  await page.goto("/object/vega");
+  const toggle = byId(page, "play-toggle");
+  await toggle.click(); // first sound needs a click (autoplay policy)
+  await expect(toggle).toHaveAttribute("aria-label", "Pause");
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur()); // focus leaves the button
+  await page.keyboard.press("Space");
+  await expect(toggle).toHaveAttribute("aria-label", "Play");
+  await page.keyboard.press("Space");
+  await expect(toggle).toHaveAttribute("aria-label", "Pause");
+});
+
+test("the home panel folds away and back", async ({ page }) => {
+  await page.goto("/");
+  const toggle = page.getByRole("button", { name: "Listen to the sky" });
+  const chip = page.getByRole("link", { name: "Saturn", exact: true }).filter({ visible: true });
+  await expect(chip).toBeVisible();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(chip).toHaveCount(0);
+  await toggle.click();
+  await expect(chip).toBeVisible();
+});
+
+test("scrolling up on the About sheet closes it", async ({ page }) => {
+  await page.goto("/");
+  const sheet = page.getByTestId("about-sheet");
+  await page.getByTestId("about-toggle").click();
+  await expect(sheet).toBeVisible();
+  await page.waitForTimeout(700); // let it finish sliding in
+  const box = (await sheet.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + 120);
+  await page.mouse.wheel(0, -120);
+  await expect(sheet).toBeHidden();
 });
 
 test("sound settings start collapsed and expand on demand", async ({ page }) => {
@@ -172,7 +284,7 @@ test("Russian names are found in the catalogs via Wikidata (live network)", asyn
   await page.goto("/ru");
   await page.getByLabel("Поиск объекта").fill("Капелла");
   await expect(page.getByRole("option").filter({ hasText: "Капелла" }).first()).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText("Из научных каталогов")).toBeVisible();
+  await expect(page.getByText("Из научных каталогов").filter({ visible: true })).toBeVisible();
 });
 
 test("auto-switch moves to another object after the chosen time", async ({ page }) => {

@@ -36,6 +36,11 @@ const es: SeedTexts = {
   "psr-j0437-4715": ["Púlsar de milisegundos J0437−4715", "El púlsar de milisegundos más cercano y brillante: una vuelta cada 5,76 ms, unas 170 por segundo. Uno de los relojes más precisos del universo."],
   "geminga": ["Geminga", "Un púlsar cercano casi mudo en radio pero brillante en rayos gamma. Gira unas cuatro veces por segundo."],
   "hulse-taylor": ["Púlsar de Hulse-Taylor", "Un púlsar binario cuya órbita se encoge justo como predice la emisión de ondas gravitacionales. Premio Nobel de 1993."],
+  "sgr-a-star": ["Sagitario A*", "El agujero negro supermasivo del corazón de nuestra galaxia, 4,3 millones de veces la masa del Sol. El Event Horizon Telescope fotografió su sombra en 2022."],
+  "m87-star": ["M87*", "El primer agujero negro fotografiado (2019): 6500 millones de masas solares en el centro de la galaxia M87, que lanza un chorro de miles de años luz."],
+  "cygnus-x-1": ["Cygnus X-1", "El primer agujero negro identificado: unas 21 masas solares que arrancan gas a una supergigante azul compañera cada 5,6 días."],
+  "v404-cygni": ["V404 Cygni", "Un agujero negro de unas 9 masas solares que despierta cada pocas décadas con violentos estallidos de rayos X, alimentándose de una compañera naranja."],
+  "gaia-bh3": ["Gaia BH3", "El agujero negro estelar más masivo conocido en nuestra galaxia —33 soles—, descubierto en 2024 por el bamboleo de la vieja estrella que lo orbita."],
 };
 
 export default es;

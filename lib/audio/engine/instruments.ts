@@ -9,7 +9,9 @@ export interface Instruments {
   bass: Tone.MonoSynth;
   lead: Poly;
   texture: Poly;
-  drums: { kick: Tone.MembraneSynth; snare: Tone.NoiseSynth; hat: Tone.NoiseSynth } | null;
+  /** Distorted guitar, its drive stage and make-up gain (tone is set per phrase). */
+  guitar: { dirty: Tone.PolySynth<Tone.Synth>; drive: Tone.Distortion; level: Tone.Gain; clean: Tone.PolySynth<Tone.Synth> } | null;
+  drums: { kick: Tone.MembraneSynth; snare: Tone.NoiseSynth; hat: Tone.NoiseSynth; crash: Tone.NoiseSynth | null } | null;
   vinyl: { noise: Tone.Noise; click: Tone.NoiseSynth } | null;
   /** Nodes owned by the instruments (filters, chorus) that must be disposed with them. */
   extras: Tone.ToneAudioNode[];
@@ -21,6 +23,7 @@ export interface LayerOutputs {
   lead: Tone.InputNode;
   texture: Tone.InputNode;
   drums: Tone.InputNode;
+  guitar: Tone.InputNode;
   /** Brightness filter shared by pad/lead; its cutoff follows the light curve. */
   filter: Tone.Filter;
 }
@@ -37,6 +40,12 @@ export function createInstruments(p: MusicParams, genre: GenrePreset, out: Layer
       oscillator: { type: PAD_OSC[p.timbre], count: 3, spread: 22 },
       envelope: { attack: 1.2, decay: 1.5, sustain: 0.8, release: 4 },
     });
+  } else if (genre.instruments.pad === "choir") {
+    // Dark choir: detuned saws through a vowel-like formant (an "oh" around 450 Hz).
+    pad = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: "fatsawtooth", count: 4, spread: 30 },
+      envelope: { attack: 2.2, decay: 1, sustain: 0.85, release: 5 },
+    });
   } else {
     pad = new Tone.PolySynth(Tone.FMSynth, {
       harmonicity: 3,
@@ -49,12 +58,26 @@ export function createInstruments(p: MusicParams, genre: GenrePreset, out: Layer
   }
   pad.maxPolyphony = 16;
   const chorus = new Tone.Chorus({ frequency: 0.25, delayTime: 4, depth: 0.5, wet: 0.35 }).start();
-  pad.chain(out.filter, chorus, out.pad);
+  if (genre.instruments.pad === "choir") {
+    const formant = new Tone.Filter({ type: "bandpass", frequency: 450, Q: 1.4 });
+    const air = new Tone.Filter({ type: "lowpass", frequency: 1800, rolloff: -24 });
+    pad.chain(formant, air, chorus, out.pad);
+    extras.push(formant, air);
+  } else {
+    pad.chain(out.filter, chorus, out.pad);
+  }
   extras.push(chorus);
 
   // Bass
   const bass =
-    genre.instruments.bass === "sub"
+    genre.instruments.bass === "grit"
+      ? new Tone.MonoSynth({
+          oscillator: { type: "sawtooth" },
+          envelope: { attack: 0.02, decay: 0.5, sustain: 0.85, release: 1.2 },
+          filter: { Q: 1.2, type: "lowpass", rolloff: -24 },
+          filterEnvelope: { attack: 0.01, decay: 0.4, sustain: 0.5, release: 1, baseFrequency: 90, octaves: 2.4 },
+        })
+      : genre.instruments.bass === "sub"
       ? new Tone.MonoSynth({
           oscillator: { type: "sine" },
           envelope: { attack: 0.9, decay: 0.6, sustain: 0.9, release: 2.5 },
@@ -71,7 +94,17 @@ export function createInstruments(p: MusicParams, genre: GenrePreset, out: Layer
 
   // Lead
   const lead =
-    genre.instruments.lead === "glass"
+    genre.instruments.lead === "bell"
+      ? // A tolling bell: inharmonic FM with a long ring.
+        new Tone.PolySynth(Tone.FMSynth, {
+          harmonicity: 1.41,
+          modulationIndex: 5,
+          oscillator: { type: "sine" },
+          modulation: { type: "sine" },
+          envelope: { attack: 0.002, decay: 4, sustain: 0, release: 4 },
+          modulationEnvelope: { attack: 0.002, decay: 1.6, sustain: 0, release: 2 },
+        })
+      : genre.instruments.lead === "glass"
       ? new Tone.PolySynth(Tone.Synth, {
           oscillator: { type: p.timbre === "warm" ? "triangle" : "sine" },
           envelope: { attack: 0.35, decay: 1.2, sustain: 0.5, release: 3.5 },
@@ -99,6 +132,37 @@ export function createInstruments(p: MusicParams, genre: GenrePreset, out: Layer
   texture.chain(textureHp, out.texture);
   extras.push(textureHp);
 
+  // Guitars. Dirty: detuned saws -> distortion (amount set per phrase) -> a cabinet-ish EQ.
+  // Clean: a plucked, chorused tone with its own dotted-eighth echo, for arpeggios.
+  let guitar: Instruments["guitar"] = null;
+  if (genre.instruments.guitar === "heavy") {
+    const dirty = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: "fatsawtooth", count: 2, spread: 12 },
+      envelope: { attack: 0.004, decay: 0.4, sustain: 0.8, release: 1.2 },
+    });
+    dirty.maxPolyphony = 10;
+    const drive = new Tone.Distortion({ distortion: 0.5, oversample: "4x" });
+    const lowCut = new Tone.Filter({ type: "highpass", frequency: 70, Q: 0.7 });
+    const scoop = new Tone.Filter({ type: "peaking", frequency: 750, Q: 0.9, gain: -5 });
+    const cab = new Tone.Filter({ type: "lowpass", frequency: 3000, Q: 0.8, rolloff: -24 });
+    const level = new Tone.Gain(0.8);
+    dirty.chain(drive, lowCut, scoop, cab, level, out.guitar);
+
+    const clean = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: "fatsawtooth", count: 2, spread: 7 },
+      envelope: { attack: 0.003, decay: 1.6, sustain: 0.12, release: 2.6 },
+    });
+    clean.maxPolyphony = 10;
+    const tone = new Tone.Filter({ type: "lowpass", frequency: 2200, Q: 0.5, rolloff: -24 });
+    const shimmer = new Tone.Chorus({ frequency: 0.6, delayTime: 3.5, depth: 0.6, wet: 0.5 }).start();
+    const echo = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.38, wet: 0.3 });
+    const cleanLevel = new Tone.Gain(0.9);
+    clean.chain(tone, shimmer, echo, cleanLevel, out.guitar);
+
+    guitar = { dirty, drive, level, clean };
+    extras.push(drive, lowCut, scoop, cab, level, tone, shimmer, echo, cleanLevel);
+  }
+
   // Drums
   let drums: Instruments["drums"] = null;
   if (genre.instruments.drums === "boombap") {
@@ -118,8 +182,42 @@ export function createInstruments(p: MusicParams, genre: GenrePreset, out: Layer
       noise: { type: "white" },
       envelope: { attack: 0.001, decay: 0.035, sustain: 0, release: 0.02 },
     }).connect(hatHp);
-    drums = { kick, snare, hat };
+    drums = { kick, snare, hat, crash: null };
     extras.push(dusty, snareBp, hatHp);
+  } else if (genre.instruments.drums === "room") {
+    // Big, slow kit: a deep kick, a fat snare, a ride and a crash (the room comes from the reverb send).
+    const kick = new Tone.MembraneSynth({
+      pitchDecay: 0.07,
+      octaves: 6,
+      envelope: { attack: 0.001, decay: 0.7, sustain: 0, release: 0.2 },
+    }).connect(out.drums);
+    const snareBp = new Tone.Filter({ type: "bandpass", frequency: 1400, Q: 0.6 }).connect(out.drums);
+    const snare = new Tone.NoiseSynth({
+      noise: { type: "pink" },
+      envelope: { attack: 0.001, decay: 0.32, sustain: 0, release: 0.1 },
+    }).connect(snareBp);
+    const rideHp = new Tone.Filter({ type: "highpass", frequency: 6500 }).connect(out.drums);
+    const hat = new Tone.NoiseSynth({
+      noise: { type: "white" },
+      envelope: { attack: 0.001, decay: 0.28, sustain: 0, release: 0.2 },
+    }).connect(rideHp);
+    const crashHp = new Tone.Filter({ type: "highpass", frequency: 4200 }).connect(out.drums);
+    const crash = new Tone.NoiseSynth({
+      noise: { type: "white" },
+      envelope: { attack: 0.002, decay: 2.4, sustain: 0, release: 1.2 },
+    }).connect(crashHp);
+    drums = { kick, snare, hat, crash };
+    extras.push(snareBp, rideHp, crashHp);
+  }
+
+  // Ash: a cold wind bed, slowly swept band-passed noise.
+  if (genre.instruments.texture === "ash") {
+    const wind = new Tone.AutoFilter({ frequency: 0.05, baseFrequency: 180, octaves: 2.6, filter: { type: "bandpass", Q: 2.5, rolloff: -12 } })
+      .connect(out.texture)
+      .start();
+    const windGain = new Tone.Gain(0.9).connect(wind);
+    const windNoise = new Tone.Noise("brown").connect(windGain).start();
+    extras.push(wind, windGain, windNoise);
   }
 
   // Vinyl: faint filtered noise bed plus random crackles
@@ -137,12 +235,13 @@ export function createInstruments(p: MusicParams, genre: GenrePreset, out: Layer
     extras.push(bed, bedGain, crackleHp);
   }
 
-  return { pad, bass, lead, texture, drums, vinyl, extras };
+  return { pad, bass, lead, texture, guitar, drums, vinyl, extras };
 }
 
 export function disposeInstruments(i: Instruments) {
   i.vinyl?.noise.stop();
-  for (const node of [i.pad, i.bass, i.lead, i.texture, i.drums?.kick, i.drums?.snare, i.drums?.hat, i.vinyl?.noise, i.vinyl?.click, ...i.extras]) {
+  for (const node of i.extras) if (node instanceof Tone.Noise) node.stop();
+  for (const node of [i.pad, i.bass, i.lead, i.texture, i.guitar?.dirty, i.guitar?.clean, i.drums?.kick, i.drums?.snare, i.drums?.hat, i.drums?.crash, i.vinyl?.noise, i.vinyl?.click, ...i.extras]) {
     node?.dispose();
   }
 }

@@ -1,16 +1,18 @@
 import { notFound } from "next/navigation";
 import { HomeObjects, type HomeGroup } from "@/components/ui/HomeObjects";
+import { HomePanel } from "@/components/ui/HomePanel";
 import { isLang, pick } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import type { ObjectDto } from "@/lib/objects/dto";
 import { getSkyObjects } from "@/lib/objects/queries";
 
-const GROUPS: { key: "solar" | "stars" | "pulsars"; match: (o: ObjectDto) => boolean }[] = [
+const GROUPS: { key: "solar" | "stars" | "pulsars" | "blackHoles"; match: (o: ObjectDto) => boolean }[] = [
   { key: "solar", match: (o) => o.canonicalKey.startsWith("jpl:") },
   { key: "pulsars", match: (o) => o.type === "pulsar" },
+  { key: "blackHoles", match: (o) => o.type === "black_hole" },
   { key: "stars", match: () => true },
 ];
-const ORDER = ["solar", "stars", "pulsars"];
+const ORDER = ["solar", "stars", "pulsars", "blackHoles"];
 
 export default async function Home({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
@@ -31,10 +33,9 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
     .sort((a, b) => ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
 
   return (
-    <section className="pointer-events-auto mt-auto max-h-full w-full max-w-sm overflow-y-auto">
-      <h1 className="text-2xl font-light tracking-tight">{t.home.title}</h1>
-      <p className="mt-1.5 text-[13px] leading-relaxed text-white/55">{t.home.tagline}</p>
+    <HomePanel title={t.home.title}>
+      <p className="text-[13px] leading-relaxed text-white/55">{t.home.tagline}</p>
       <HomeObjects groups={groups} label={t.home.objectsNav} />
-    </section>
+    </HomePanel>
   );
 }

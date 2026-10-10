@@ -4,7 +4,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { Suspense } from "react";
 import { ListenButton, ObjectLoader } from "@/components/ui/ObjectControls";
 import { isLang, LANGS, localizePath, pick, type Lang } from "@/lib/i18n/config";
-import { describe, formatDistance, formatPeriod, lightCurveNote } from "@/lib/i18n/describe";
+import { describe, formatDistance, formatMass, formatPeriod, lightCurveNote } from "@/lib/i18n/describe";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import type { ObjectDto } from "@/lib/objects/dto";
 import { getPageObject } from "@/lib/objects/queries";
@@ -57,6 +57,7 @@ function facts(o: ObjectDto, lang: Lang): [string, string][] {
   const num = (v: number) => v.toLocaleString(lang);
   const rows: [string, string | undefined][] = [
     [f.type, getDictionary(lang).types[o.type]],
+    [f.mass, p.mass_msun ? formatMass(p.mass_msun, lang) : undefined],
     [f.spectral, p.spectral_type],
     [f.variability, p.variability_type],
     [o.type === "variable_star" ? f.lightPeriod : f.spin, p.period_s ? formatPeriod(p.period_s, lang) : undefined],
@@ -137,7 +138,7 @@ async function ObjectPanel({ params }: { params: PageProps<"/[lang]/object/[slug
 
 function Panel({ children, back, home }: { children: React.ReactNode; back: string; home: string }) {
   return (
-    <article className="pointer-events-auto mt-auto max-h-full w-full max-w-sm overflow-y-auto rounded-2xl border border-white/10 bg-[#0b0d18]/75 p-5 backdrop-blur-md">
+    <article className="pointer-events-auto mt-auto max-h-[36dvh] w-full max-w-sm overflow-y-auto rounded-2xl sm:max-h-full border border-white/10 bg-[#0b0d18]/50 p-5 backdrop-blur-md">
       <Link href={home} scroll={false} className="text-xs text-white/40 hover:text-white/70">
         {back}
       </Link>
@@ -150,7 +151,7 @@ export default function ObjectPage({ params }: PageProps<"/[lang]/object/[slug]"
   return (
     <Suspense
       fallback={
-        <article className="pointer-events-auto mt-auto w-full max-w-sm rounded-2xl border border-white/10 bg-[#0b0d18]/75 p-5 backdrop-blur-md">
+        <article className="pointer-events-auto mt-auto w-full max-w-sm rounded-2xl border border-white/10 bg-[#0b0d18]/50 p-5 backdrop-blur-md">
           <div className="h-24 animate-pulse rounded-lg bg-white/5" />
         </article>
       }

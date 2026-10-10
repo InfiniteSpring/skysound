@@ -36,6 +36,11 @@ const en: SeedTexts = {
   "psr-j0437-4715": ["Millisecond pulsar J0437−4715", "The closest and brightest millisecond pulsar: one turn every 5.76 ms, about 170 times a second. One of the most precise clocks in the Universe."],
   "geminga": ["Geminga", "A nearby pulsar that is almost silent in radio but bright in gamma rays. It spins about four times a second."],
   "hulse-taylor": ["Hulse–Taylor pulsar", "A binary pulsar whose orbit shrinks exactly as gravitational-wave emission predicts. Nobel Prize, 1993."],
+  "sgr-a-star": ["Sagittarius A*", "The supermassive black hole at the heart of our galaxy, 4.3 million times the Sun's mass. Its shadow was imaged by the Event Horizon Telescope in 2022."],
+  "m87-star": ["M87*", "The first black hole ever photographed (2019): 6.5 billion solar masses at the centre of galaxy M87, launching a jet thousands of light-years long."],
+  "cygnus-x-1": ["Cygnus X-1", "The first black hole ever identified: about 21 solar masses, tearing gas from a blue supergiant companion every 5.6 days."],
+  "v404-cygni": ["V404 Cygni", "A black hole of about 9 solar masses that wakes up every few decades with violent X-ray outbursts, feeding on a smaller orange companion."],
+  "gaia-bh3": ["Gaia BH3", "The most massive stellar black hole known in our galaxy — 33 Suns — found in 2024 by the wobble of the old star orbiting it."],
 };
 
 export default en;

@@ -8,7 +8,7 @@ const pt: Dictionary = {
   home: {
     title: "Ouça o céu",
     tagline: "Cada objeto toca os próprios dados: a rotação dá o andamento, o calor o timbre, a distância o eco.",
-    groups: { solar: "Sistema solar", stars: "Estrelas", pulsars: "Pulsares" },
+    groups: { solar: "Sistema solar", stars: "Estrelas", pulsars: "Pulsares", blackHoles: "Buracos negros" },
     objectsNav: "Objetos",
   },
   search: {
@@ -23,6 +23,8 @@ const pt: Dictionary = {
   player: {
     play: "Tocar",
     pause: "Pausar",
+    prev: "Anterior",
+    next: "Seguinte",
     loading: (name) => `Buscando “${name}” em catálogos científicos…`,
     pick: "Escolha um objeto no céu — e ele vai soar",
     unsupported: "Este navegador não suporta Web Audio",
@@ -30,7 +32,7 @@ const pt: Dictionary = {
     volume: "Volume",
     reverb: "reverb",
     sec: "s",
-    scales: { aeolian: "menor", dorian: "dórico", mixolydian: "mixolídio", major: "maior", lydian: "lídio" },
+    scales: { phrygian: "frígio", harmonicMinor: "menor harmônica", aeolian: "menor", dorian: "dórico", mixolydian: "mixolídio", major: "maior", lydian: "lídio" },
   },
   settings: {
     title: "Configurações de som",
@@ -65,6 +67,7 @@ const pt: Dictionary = {
       distance: "Distância",
       magnitude: "Magnitude aparente",
       amplitude: "Amplitude",
+      mass: "Massa",
       coords: "Coordenadas (AR, Dec)",
       mag: "mag",
     },
@@ -87,9 +90,10 @@ const pt: Dictionary = {
     star_system: "sistema estelar",
     moon: "lua",
     small_body: "corpo menor",
+    black_hole: "buraco negro",
     other: "objeto",
   },
-  units: { ms: "ms", s: "s", min: "min", h: "h", d: "dias", yr: "anos", au: "UA", ly: "anos-luz" },
+  units: { ms: "ms", s: "s", min: "min", h: "h", d: "dias", yr: "anos", au: "UA", ly: "anos-luz", msun: "massas solares" },
   describe: {
     lead: (name, type, spectral) => `${name} é ${/^(estrela|lua)/.test(type) ? "uma" : "um"} ${type}${spectral ? ` de classe espectral ${spectral}` : ""}`,
     distance: (d) => `a ${d} de distância`,
@@ -106,6 +110,30 @@ const pt: Dictionary = {
     sine: (v) => `Curva de luz senoidal modelo${v}`,
     pulse: () => "Perfil de pulso modelo",
     pulse_interpulse: () => "Perfil de pulso modelo com interpulso",
+  },
+  about: {
+    button: "Sobre",
+    title: "Sobre o projeto",
+    close: "Fechar",
+    howTitle: "Como funciona",
+    how: [
+      "Escolha um objeto no céu: um planeta, uma estrela, um pulsar, uma estrela variável ou um buraco negro.",
+      "Os parâmetros reais vêm de catálogos científicos: períodos de rotação e de órbita, período de pulsação, temperatura, distância e variações de brilho.",
+      "A música é gerada no seu navegador: os períodos definem o andamento e o ritmo, as suas razões tornam-se intervalos musicais, a temperatura escolhe o timbre e a escala, a distância define a profundidade do eco e a curva de luz molda a dinâmica.",
+      "O mesmo objeto soa sempre igual, e não há dois objetos que soem iguais. O céu e os close-ups são desenhados em tempo real com shaders WebGL.",
+    ],
+    sourcesTitle: "Dados e serviços",
+    sources: {
+      simbad: "estrelas e outros objetos fora do Sistema Solar (CDS, Estrasburgo)",
+      gaia: "distâncias e temperaturas estelares precisas (ESA)",
+      atnf: "períodos e parâmetros de pulsares (CSIRO)",
+      vsx: "estrelas variáveis, via VizieR (AAVSO, CDS)",
+      jpl: "planetas, luas e cometas (NASA/JPL)",
+      wikidata: "nomes dos objetos em todas as línguas",
+    },
+    builtWith: "Feito com",
+    contactTitle: "Contactar o autor",
+    contactText: "Ideias, erros ou só para dizer olá — escreva-me:",
   },
 };
 

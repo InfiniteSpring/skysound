@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { composeBar, initialState, type BarPlan } from "@/lib/audio/composer";
-import { GENRE_LIST, ambient, lofi } from "@/lib/audio/genres";
+import { composeBar, guitarStyle, initialState, type BarPlan } from "@/lib/audio/composer";
+import { GENRE_LIST, ambient, lofi, metal } from "@/lib/audio/genres";
 import {
   brightnessFromTemperature,
   depthFromDistance,
@@ -21,7 +21,7 @@ const load = (slug: string): SpaceObject =>
   });
 const objects = SEED_SLUGS.map(load);
 
-const allNotes = (plan: BarPlan) => [...plan.pad, ...plan.bass, ...plan.lead, ...plan.texture].map((n) => n.midi);
+const allNotes = (plan: BarPlan) => [...plan.pad, ...plan.bass, ...plan.lead, ...plan.texture, ...plan.guitar, ...plan.clean].map((n) => n.midi);
 
 describe("theory", () => {
   it("builds diatonic seventh chords", () => {
@@ -109,6 +109,42 @@ describe("composer", () => {
         }
       }
     }
+  });
+
+  it("ambient metal: sparse guitar and drums, a new guitar character every phrase", () => {
+    const { phraseLength } = metal.rules;
+    for (const o of objects) {
+      const m = mapToMusic(o, metal);
+      expect(m.bpm).toBeLessThanOrEqual(72);
+      const state = initialState(m);
+      let guitarNotes = 0, kicks = 0, hats = 0;
+      const BARS = 96;
+      for (let bar = 0; bar < BARS; bar++) {
+        const plan = composeBar(m, metal, bar, state);
+        guitarNotes += plan.guitar.length + plan.clean.length;
+        kicks += plan.drums.kick.length;
+        hats += plan.drums.hat.length;
+        // Clean lines never repeat a note back to back.
+        for (let i = 1; i < plan.clean.length; i++) expect(plan.clean[i].midi).not.toBe(plan.clean[i - 1].midi);
+        for (const hits of Object.values(plan.drums)) {
+          const times = hits.map((h) => h.time);
+          expect(new Set(times).size).toBe(times.length); // a mono voice can't hit twice at once
+        }
+      }
+      expect(guitarNotes / BARS).toBeLessThan(3.5);
+      expect(kicks / BARS).toBeLessThanOrEqual(1);
+      expect(hats / BARS).toBeLessThan(0.6);
+
+      const styles = Array.from({ length: BARS / phraseLength }, (_, i) => guitarStyle(m, i));
+      expect(styles[0]).toBe("clean");
+      for (let i = 1; i < styles.length; i++) expect(styles[i]).not.toBe(styles[i - 1]);
+      expect(new Set(styles).size).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("other genres have no guitar", () => {
+    const m = mapToMusic(objects[0], ambient);
+    expect(composeBar(m, ambient, 0, initialState(m)).guitar).toEqual([]);
   });
 
   it("is deterministic for a given object and bar", () => {
