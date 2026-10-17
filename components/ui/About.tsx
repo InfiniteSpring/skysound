@@ -80,7 +80,7 @@ export function AboutPush({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Small "About" pill for the player bar. */
+/** "About": its own small panel right after the player bar (an "i" on phones). */
 export function AboutButton() {
   const { open, setOpen, sheetId, triggerRef } = useAbout();
   const { t } = useLang();
@@ -92,9 +92,15 @@ export function AboutButton() {
       aria-expanded={open}
       aria-controls={sheetId}
       data-testid="about-toggle"
-      className="shrink-0 rounded-full bg-white/5 px-3 py-1.5 text-xs text-white/60 transition hover:text-white"
+      aria-label={t.about.button}
+      className="pointer-events-auto flex shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-[#0b0d18]/50 px-3.5 text-sm text-white/65 backdrop-blur-md transition hover:border-white/25 hover:text-white sm:px-5"
     >
-      {t.about.button}
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className="sm:hidden">
+        <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+        <path d="M8 7.2v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="8" cy="4.9" r="0.95" fill="currentColor" />
+      </svg>
+      <span className="hidden sm:inline">{t.about.button}</span>
     </button>
   );
 }

@@ -1,104 +1,189 @@
-# Музыка космоса
+# Music of the Cosmos
 
-Интерактивная карта неба: выбираете объект (планету, пульсар, переменную звезду) и жанр — музыка
-бесконечно генерируется в браузере из реальных научных данных объекта.
+An interactive sky map where every object plays its own music. Pick a planet, a pulsar, a
+variable star or a black hole, pick a genre, and an endless track is generated in the
+browser from the object's real scientific data. Spin sets the tempo, heat sets the timbre
+and distance sets the echo.
 
-## Быстрый старт
+- Real catalog data: SIMBAD, Gaia DR3, ATNF, AAVSO VSX, JPL Horizons, Wikidata
+- Three genres: Ambient, Lo-fi and Ambient metal, all generated live with Tone.js
+- A WebGL sky (three.js / react-three-fiber) with procedural close-ups of every object
+- 10 languages, server-rendered object pages with full SEO metadata
+
+## Quick start (development)
+
+Requirements: Node.js 22+ and PostgreSQL 14+.
 
 ```bash
-cp .env.example .env.local          # DATABASE_URL, NEXT_PUBLIC_SITE_URL
+cp .env.example .env.local      # DATABASE_URL, NEXT_PUBLIC_SITE_URL, CATALOG_CONTACT
 npm install
-npm run db:migrate                   # включает pg_trgm и создаёт таблицу objects
-npm run db:seed                      # 35 сид-объектов через те же адаптеры, что и API
+npm run db:migrate              # enables pg_trgm, creates the objects table
+npm run db:seed                 # 40 seed objects through the same adapters the API uses
 npm run dev
 ```
 
-| Скрипт | Что делает |
+| Script | What it does |
 | --- | --- |
-| `npm test` | Vitest: адаптеры, нормализатор, маппинг, композитор, DB-first сервис (нужна БД `skysound_test` или `TEST_DATABASE_URL`) |
-| `npm run test:e2e` | Playwright смоук (поднимет `build && start`, если сервер не запущен). На macOS использует GPU (Metal); на программном GL сцена даёт ~7 fps и тесты медленные |
-| `npm run db:rebuild` | Пересобрать `params` из сохранённых `raw` без запросов к каталогам |
-| `npm run fixtures` | Перезаписать `tests/fixtures/*.json` реальными ответами каталогов |
+| `npm run dev` / `build` / `start` | Next.js dev server / production build / production server |
+| `npm test` | Vitest: catalog adapters, normalizer, music mapping, composer, DB-first service. Needs a `skysound_test` database (or `TEST_DATABASE_URL`) |
+| `npm run test:e2e` | Playwright smoke tests. Runs `build && start` if no server is up. Uses the GPU (Metal) on macOS; software GL is very slow |
+| `npm run lint` / `typecheck` | ESLint / TypeScript |
+| `npm run db:seed` | Seed from the live catalogs. Flags: `--if-empty`, `--fallback-fixtures` (use saved responses when a catalog fails), `--fixtures` (offline) |
+| `npm run db:rebuild` | Recompute `params` from the stored raw responses, without calling the catalogs |
+| `npm run fixtures` | Re-capture `tests/fixtures/*.json` from the live catalogs |
 
-## Как устроено
+## Deployment
 
-```
-app/[lang]/             страницы: /, /object/[slug] (en без префикса, ru под /ru)
-app/api, sitemap, robots API-роуты и метаданные сайта
-proxy.ts                маршрутизация языков
-components/audio        AudioProvider в корневом layout — звук не прерывается при навигации
-components/scene        Three.js (r3f): звёздное поле + Млечный Путь, объекты по RA/Dec, перелёт камеры
-components/sky          SkyProvider: список объектов, выбор = URL, подгрузка новых объектов
-lib/sources             адаптеры каталогов + normalize.ts (Zod-схема SpaceObject)
-lib/db                  Drizzle-схема, клиент, репозиторий objects
-lib/objects             DB-first сервис, кэшируемые запросы для страниц
-lib/audio               mapping (данные → музыка), composer (чистая генерация тактов), genres, engine (Tone.js)
-scripts/                seed, rebuild, capture-fixtures
+### Docker Compose (app + Postgres)
+
+```bash
+cp .env.example .env            # set SITE_URL, POSTGRES_PASSWORD, CATALOG_CONTACT
+docker compose up -d --build
+docker compose logs -f app      # first start: migrate → seed → build (a couple of minutes)
 ```
 
-**Каталоги.** SIMBAD (Sesame + TAP: координаты, Teff, параллакс, кросс-идентификаторы) →
-по идентификаторам дозапрашиваются Gaia DR3 (Teff, светимость), ATNF (период пульсара,
-расстояние), VSX (тип и период переменности). Планеты и тела Солнечной системы — JPL Horizons.
-У каждого запроса таймаут, ретраи с бэкоффом и лимит частоты на каталог.
+The app listens on `APP_PORT` (default 3000). Put a reverse proxy with TLS in front of it
+(Caddy, nginx, Traefik). `GET /api/health` reports the app and database status, and the
+image's `HEALTHCHECK` uses it.
 
-**Языки.** 10 самых распространённых языков: en, zh, hi, es, fr, ar, bn, pt, ru, ur (ar и ur —
-справа налево, `dir="rtl"`, раскладка на логических свойствах start/end). Английский по
-умолчанию без префикса (`/object/sirius`), остальные — под своим префиксом (`/zh/…`);
-`proxy.ts` переписывает адреса без префикса на внутреннее дерево `app/[lang]`, а `/en/…`
-редиректит на канонический адрес. Страницы отдают `hreflang`, sitemap перечисляет обе версии.
-Строки интерфейса и шаблоны описаний — `lib/i18n/dict/<lang>.ts`; кураторские названия и
-описания сид-объектов — `lib/seed/texts/<lang>.ts` (тест проверяет полноту по всем языкам).
-Для объектов без кураторского текста описание генерируется из параметров на языке страницы.
-Поиск на любом языке идёт через Wikidata (язык берётся из интерфейса или по письменности запроса).
-Переключение языка не прерывает музыку: движок живёт вне React-дерева.
+**Why the build runs on first start.** Pages are prerendered from the database (Next.js
+Cache Components), so `next build` needs a live database, and it also inlines
+`NEXT_PUBLIC_SITE_URL`. The image therefore holds the source and dependencies, and
+`docker/entrypoint.sh` runs four steps:
 
-**Поиск по-русски.** Каталоги понимают только латинские обозначения, поэтому кириллический запрос
-идёт через Wikidata: «Бетельгейзе» → Q12124 → SIMBAD `* alf Ori`; планеты и спутники
-сопоставляются с Horizons по английскому имени, кометы — по SPK-ID. Русское название сохраняется
-как имя объекта. Результаты поиска кэшируются на 10 минут, `Retry-After` соблюдается.
+1. Apply the migrations.
+2. Seed, but only if the database is empty. It tries the live catalogs first and falls back
+   to the saved responses for any object that fails.
+3. Build once per container.
+4. Start.
 
-**DB-first.** `GET /api/objects/[slug]`: готовая запись отдаётся сразу. Иначе вставляется
-заглушка `fetching` — уникальный `slug` работает как блокировка, так что каталоги опрашивает
-ровно один запрос; остальные ждут его промис (тот же процесс) или опрашивают статус (другие
-инстансы). Ошибка → `failed` с кулдауном на повтор; «не найдено» кэшируется дольше. Зависшая
-`fetching`-запись перехватывается через 90 с. Если объект уже лежит под другим slug
-(`canonical_key`, например `simbad:* alf Ori`), новый slug становится алиасом.
+Restarts reuse the build. After changing `SITE_URL`, recreate the container with
+`docker compose up -d --force-recreate app`.
 
-**Маппинг.** Период (спин пульсара, пульсация звезды, орбита планеты) сворачивается степенями
-двойки в диапазон BPM жанра; отношение периодов → интервал тоники и выбор прогрессии;
-температура → лад, яркость фильтра и тембр; кривая блеска → громкость, cutoff и реверб по долям;
-расстояние → длина и доля реверберации, задержка. Отсутствующие параметры — дефолты по типу.
-Все ноты диатоничны ладу (проверено тестами), на мастере компрессор и лимитер −1.5 dBFS.
+### Any Node host
 
-**Звук.** Клик по объекту сразу запускает кроссфейд и перелёт камеры, не дожидаясь навигации.
-Новый трек вступает на ближайшую долю. Справа внизу — настройки: длина перехода (по умолчанию
-3 с) и автосмена объекта через N минут (случайно / по порядку / того же типа). Всё хранится
-в localStorage.
+Any host with Node 22+ and Postgres works:
 
-**Крупный план.** Выбранный объект всегда отрисован «по-настоящему» в своём истинном угловом
-размере: на обзоре это точка в несколько пикселей, а камера плавно (ease-in-out, зум в
-логарифмическом масштабе, сначала поворот, потом приближение, объект никогда не выходит из
-кадра) уходит в «телескоп» с увеличением 10× (62° → 6,2°); сам объект занимает лишь небольшую часть кадра. Маркер растворяется, как только тело
-становится больше пары пикселей, — подмены нет. Рендер — HDR + bloom + ACES-тонмаппинг.
-Всё процедурное, без изображений: звёзды — клеточная грануляция, пятна, хромосфера,
-протуберанцы, корона; планеты — пояса с зональными ветрами и вихрем, рельеф кратеров
-(bump по экранным производным), атмосфера, тени колец на планете и планеты на кольцах;
-чёрные дыры — честный трассировщик лучей в метрике Шварцшильда (линзирование диска и
-фоновых звёзд, доплеровское усиление, гравитационное красное смещение).
+1. Set `DATABASE_URL`, `NEXT_PUBLIC_SITE_URL` and `CATALOG_CONTACT`.
+2. Run `npm ci && npm run db:migrate && npm run db:seed -- --if-empty --fallback-fixtures`.
+3. Run `npm run build && npm start`.
 
-**Плавность переходов.** Через пару секунд после загрузки (в простое) все шейдеры крупных
-планов компилируются заранее и остаются в памяти, «глубокое поле» рисуется один раз. Разрешение рендера фиксировано (смена `dpr` пересоздаёт все буферы — это и есть
-«вспышка»). Быстрые клики не «перескакивают» назад: оптимистичный выбор держится, пока URL
-не дойдёт до нужной страницы. Клик по самому объекту не считается кликом по пустому небу.
-Замечание: в `npm run dev` горячая перезагрузка и перекомпиляция маршрутов тоже выглядят как
-мигание — оценивать плавность стоит на `npm run build && npm run start`.
+On serverless platforms, use a pooled connection string (Neon, Supabase). The client is
+configured with `prepare: false` for that reason.
 
-## Отступления от ТЗ
+### Environment
 
-- **AAVSO API закрыт Cloudflare-челленджем**, поэтому VSX читается с его зеркала на VizieR
-  (`B/vsx/vsx`). Наблюдённые кривые блеска (AAVSO/TESS) не подключены: кривая строится как
-  модель по типу переменности и периоду из VSX и помечена `kind: "model"`.
-- Кроссфейд по умолчанию 3 с (в ТЗ 4–8 с) — по запросу, настраивается от 0,5 до 10 с.
-- ISR реализован через Cache Components (Next 16): `'use cache'` + `cacheTag` для запросов к БД,
-  `generateStaticParams` для сид-страниц; после подгрузки нового объекта API инвалидирует теги.
-- Этап 2 (аккаунты, экспорт, cron) не делался.
+| Variable | Used for |
+| --- | --- |
+| `DATABASE_URL` | Postgres connection string |
+| `NEXT_PUBLIC_SITE_URL` (`SITE_URL` in compose) | Canonical URLs, `hreflang`, sitemap, robots, Open Graph |
+| `CATALOG_CONTACT` | Contact sent in the User-Agent to SIMBAD/Wikidata (their usage policies ask for one) |
+
+### SEO
+
+- Server-rendered pages for every object in every language.
+- `hreflang` alternates including `x-default`, and canonical URLs.
+- `sitemap.xml` and `robots.txt` (`/api/` is disallowed).
+- Per-page titles and descriptions.
+- Open Graph and Twitter cards with a 1200×630 image.
+- JSON-LD: `WebApplication` for the site and `Thing` for each object, with `sameAs` links to
+  the catalog pages.
+- A web app manifest and icons (SVG, ICO, Apple touch, maskable).
+
+## How it works
+
+```
+app/[lang]/              pages: /, /object/[slug] (English unprefixed, other languages under /<lang>)
+app/api, sitemap, robots API routes (objects, search, health) and site metadata
+proxy.ts                 language routing
+components/audio         AudioProvider: the engine lives outside React, so music survives navigation
+components/scene         three.js sky: starfield, objects at RA/Dec, camera flights, close-ups
+components/sky           SkyProvider: object list, selection = URL, prev/next, auto-switch
+components/ui            panels: home, object card, player bar, settings, About sheet
+lib/sources              catalog adapters + normalize.ts (Zod schema for SpaceObject)
+lib/db, lib/objects      Drizzle schema and repository; the DB-first service; cached page queries
+lib/audio                mapping (data → music), composer (pure, deterministic bars), genres, engine (Tone.js)
+lib/i18n, lib/seed       UI dictionaries and description templates; curated seed objects and texts
+scripts/                 seed, rebuild, capture-fixtures
+docker/                  container entrypoint
+```
+
+**Catalogs.**
+- SIMBAD (Sesame + TAP) gives coordinates, Teff, parallax and cross-identifiers.
+- With those identifiers the app queries Gaia DR3 (Teff, luminosity), ATNF (pulsar period,
+  distance) and VSX (variability type and period).
+- Solar System bodies come from JPL Horizons.
+- Every request has a timeout, retries with backoff, and a per-catalog rate limit.
+
+**Search in any language.** The catalogs only understand Latin designations, so other scripts
+go through Wikidata. For example, «Бетельгейзе» → Q12124 → SIMBAD `* alf Ori`. Planets and
+moons are matched to Horizons by their English name, and comets by SPK-ID. Results are cached
+for 10 minutes, and `Retry-After` is respected.
+
+**DB-first.** `GET /api/objects/[slug]` returns a ready row at once. Otherwise:
+- A `fetching` row is inserted. The unique slug acts as a lock, so exactly one request queries
+  the catalogs; others await its promise (same process) or poll the status (other instances).
+- An error marks the row `failed`, with a retry cooldown; "not found" is cached longer.
+- A stuck `fetching` row is reclaimed after 90 s.
+- If an object already exists under another slug (same `canonical_key`), the new slug becomes
+  an alias.
+
+**Languages.**
+- en, zh, hi, es, fr, ar, bn, pt, ru, ur. Arabic and Urdu are right-to-left, and the layout
+  uses logical start/end properties.
+- English is unprefixed; `/en/…` redirects to the canonical URL.
+- UI strings live in `lib/i18n/dict/<lang>.ts`. Curated names and descriptions live in
+  `lib/seed/texts/<lang>.ts`, and a test checks they are complete for every language.
+- Other objects get descriptions generated from their parameters.
+
+**Mapping.**
+- A period (pulsar spin, stellar pulsation, planetary orbit) is folded by powers of two into
+  the genre's tempo range.
+- Period ratios choose the tonic interval and the chord progression.
+- Temperature sets the scale, filter brightness and timbre.
+- The light curve drives volume, cutoff and reverb beat by beat.
+- Distance sets reverb length and amount, and the delay.
+- Every note is diatonic (tested), and the master bus has a compressor and a −1.5 dBFS limiter.
+
+**Genres.**
+- **Ambient**: drones, glassy lead, shimmer.
+- **Lo-fi**: keys, swung boom-bap, vinyl crackle.
+- **Ambient metal**: a dark choir, a tolling bell and cold wind. Each 8-bar phrase the guitar
+  changes character:
+  - clean chorused arpeggios;
+  - a high shimmer;
+  - an open crunchy chord;
+  - a swelled high-gain wall;
+  - silence.
+
+  Gain, attack and reverb change with it. Drums appear only under the heavier phrases.
+
+**Player and settings.**
+- Previous/next: previous goes back through the history; next follows the auto-switch order.
+- Space plays and pauses.
+- **View settings:**
+  - zoom into the selected object (off by default: the camera only turns to it);
+  - show the playing object's card on the home page (on by default).
+- **Sound settings:** crossfade length; auto-switch every N minutes, in random order, list
+  order or same-type order.
+- All settings are kept in localStorage.
+
+**Close-ups.**
+- The selected object is always rendered at its true angular size. In the wide view it is a
+  few pixels, and with zoom on the camera eases into a 10× telescope view.
+- HDR rendering with bloom and ACES tone mapping. Everything is procedural, with no images.
+- **Stars:** granulation, spots, chromosphere, prominences and corona.
+- **Planets:** banded atmospheres with zonal winds, cratered relief, ring shadows.
+- **Black holes:** a Schwarzschild ray tracer, with lensing, Doppler beaming and gravitational
+  redshift.
+- **Smoothness:** all shaders are precompiled at idle, and the render resolution is fixed.
+
+## Deviations from the original spec
+
+- **The AAVSO API is behind a Cloudflare challenge**, so VSX is read from its VizieR mirror
+  (`B/vsx/vsx`). Observed light curves are not connected; the curve is modelled from the
+  variability type and the VSX period, and marked `kind: "model"`.
+- The default crossfade is 3 s (the spec said 4–8 s), as requested; it can be set from 0.5 to 10 s.
+- ISR is implemented with Cache Components: `'use cache'` + `cacheTag` for DB queries and
+  `generateStaticParams` for the seed pages. Fetching a new object invalidates the tags.
+- Stage 2 (accounts, export, cron) is not built.

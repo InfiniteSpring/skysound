@@ -14,6 +14,10 @@ function collectErrors(page: Page) {
 const byId = (page: Page, id: string) => page.getByTestId(id).filter({ visible: true });
 const objectName = (page: Page) => byId(page, "object-name");
 
+/** Turn settings on before the app reads them (they live in localStorage). */
+const withSettings = (page: Page, settings: Record<string, unknown>) =>
+  page.addInitScript((s) => localStorage.setItem("skysound:audio-settings", JSON.stringify(s)), settings);
+
 const ctxState = (page: Page) =>
   page.evaluate(() => (window as unknown as { __skysoundAudio?: () => string }).__skysoundAudio?.());
 
@@ -79,6 +83,7 @@ test("selecting objects plays music that survives navigation, genre and language
   const errors = collectErrors(page);
   const toggle = byId(page, "play-toggle");
 
+  await withSettings(page, { homeShowsTrack: false }); // this test browses the object list mid-play
   await page.goto("/");
   // The click both unlocks audio and selects: the object starts playing on arrival.
   await page.getByRole("link", { name: "Jupiter" }).click();
@@ -117,6 +122,7 @@ test("selecting objects plays music that survives navigation, genre and language
 });
 
 test("a click on empty sky or Escape returns to the whole sky", async ({ page }) => {
+  await withSettings(page, { zoomOnSelect: true }); // zoomed in, the corner of the view is guaranteed empty sky
   await page.goto("/object/sirius");
   await expect(objectName(page)).toHaveText("Sirius");
   await page.waitForLoadState("networkidle");
@@ -141,6 +147,7 @@ test("selecting an object zooms the telescope into its animated close-up; leavin
   const closeUp = () =>
     page.evaluate(() => (window as unknown as { __skysoundCloseUp?: () => { kind: string; fade: number } }).__skysoundCloseUp?.());
 
+  await withSettings(page, { zoomOnSelect: true, homeShowsTrack: false });
   await page.goto("/object/sgr-a-star");
   await expect(objectName(page)).toHaveText("Sagittarius A*");
   await expect.poll(async () => (await closeUp())?.kind, { timeout: 10_000 }).toBe("black_hole");
@@ -166,6 +173,7 @@ test("clicking the zoomed object keeps it selected; clicking empty sky goes home
   const closeUp = () =>
     page.evaluate(() => (window as unknown as { __skysoundCloseUp?: () => { slug: string; fade: number } }).__skysoundCloseUp?.());
 
+  await withSettings(page, { zoomOnSelect: true });
   await page.goto("/object/saturn");
   await expect.poll(async () => (await closeUp())?.fade ?? 0, { timeout: 10_000 }).toBeGreaterThan(0.95);
 
@@ -248,11 +256,54 @@ test("scrolling up on the About sheet closes it", async ({ page }) => {
   await expect(sheet).toBeHidden();
 });
 
-test("sound settings start collapsed and expand on demand", async ({ page }) => {
+test("settings: zoom is off by default and can be turned on; home shows the playing object", async ({ page }) => {
+  const errors = collectErrors(page);
+  const fov = () => page.evaluate(() => (window as unknown as { __skysoundFov?: () => number }).__skysoundFov?.() ?? 0);
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+
+  // Zoom off: selecting turns the camera but keeps the wide view.
+  await page.getByRole("link", { name: "Saturn", exact: true }).filter({ visible: true }).click();
+  await expect(byId(page, "now-playing")).toHaveText("Saturn");
+  await page.waitForTimeout(4000);
+  expect(await fov()).toBeGreaterThan(40);
+
+  // Turning zoom on flies into the telescope view.
+  const panel = byId(page, "settings-panel");
+  await panel.getByRole("button", { name: /^Settings/ }).click();
+  await panel.getByText("Zoom in on selected objects").click();
+  await expect(panel.getByTestId("zoom-on-select")).toBeChecked();
+  await expect.poll(fov, { timeout: 8000 }).toBeLessThan(10);
+
+  // Back home, the playing object's card replaces the object list…
+  await page.getByRole("link", { name: "← Whole sky" }).filter({ visible: true }).click();
+  await expect(page).toHaveURL(/localhost:\d+\/$/);
+  const card = byId(page, "home-track");
+  await expect(card).toBeVisible();
+  await expect(card.getByText("Now playing")).toBeVisible();
+  await expect(card.getByRole("heading", { name: "Saturn" })).toBeVisible();
+  // …unless the setting says otherwise.
+  await panel.getByText("Playing object on the home page").click();
+  await expect(panel.getByTestId("home-shows-track")).not.toBeChecked();
+  await expect(byId(page, "home-track")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Listen to the sky" })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("about is its own button next to the player bar", async ({ page }) => {
+  await page.goto("/");
+  const about = byId(page, "about-toggle");
+  const bar = (await byId(page, "play-toggle").boundingBox())!;
+  const box = (await about.boundingBox())!;
+  expect(box.x).toBeGreaterThan(bar.x + 200); // after the bar, not inside the transport
+  expect(await about.evaluate((el) => !!el.closest('[data-testid="player-bar"]'))).toBe(false);
+});
+
+test("settings start collapsed and expand on demand", async ({ page }) => {
   await page.goto("/");
   await page.waitForLoadState("networkidle");
   const panel = byId(page, "settings-panel");
-  const header = panel.getByRole("button", { name: /Sound settings/ });
+  const header = panel.getByRole("button", { name: /^Settings/ });
   await expect(header).toHaveAttribute("aria-expanded", "false");
   await expect(panel.getByText("Auto-switch objects")).toBeHidden();
   await header.click();
@@ -292,7 +343,7 @@ test("auto-switch moves to another object after the chosen time", async ({ page 
   await page.goto("/");
   await page.waitForLoadState("networkidle");
   const panel = byId(page, "settings-panel");
-  await panel.getByRole("button", { name: /Sound settings/ }).click();
+  await panel.getByRole("button", { name: /^Settings/ }).click();
   await panel.getByText("Auto-switch objects").click();
   await panel.getByRole("radio", { name: "1 min" }).click();
   await panel.getByRole("radio", { name: "In order" }).click();

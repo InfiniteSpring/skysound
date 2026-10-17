@@ -1,0 +1,37 @@
+# Music of the Cosmos: app + Postgres.
+#   cp .env.example .env    # set SITE_URL, POSTGRES_PASSWORD, CATALOG_CONTACT
+#   docker compose up -d --build
+# First start migrates, seeds and builds (a couple of minutes); later starts are instant.
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-skysound}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-skysound}
+      POSTGRES_DB: ${POSTGRES_DB:-skysound}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-skysound}:${POSTGRES_PASSWORD:-skysound}@db:5432/${POSTGRES_DB:-skysound}
+      NEXT_PUBLIC_SITE_URL: ${SITE_URL:-http://localhost:3000}
+      CATALOG_CONTACT: ${CATALOG_CONTACT:-}
+      PORT: 3000
+    ports:
+      - "${APP_PORT:-3000}:3000"
+
+volumes:
+  pgdata:

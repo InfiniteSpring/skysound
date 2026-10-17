@@ -10,6 +10,7 @@ const pt: Dictionary = {
     tagline: "Cada objeto toca os próprios dados: a rotação dá o andamento, o calor o timbre, a distância o eco.",
     groups: { solar: "Sistema solar", stars: "Estrelas", pulsars: "Pulsares", blackHoles: "Buracos negros" },
     objectsNav: "Objetos",
+    nowPlaying: "A tocar",
   },
   search: {
     placeholder: "Encontre uma estrela, planeta, pulsar…",
@@ -35,7 +36,13 @@ const pt: Dictionary = {
     scales: { phrygian: "frígio", harmonicMinor: "menor harmônica", aeolian: "menor", dorian: "dórico", mixolydian: "mixolídio", major: "maior", lydian: "lídio" },
   },
   settings: {
-    title: "Configurações de som",
+    title: "Definições",
+    view: "Vista",
+    sound: "Som",
+    zoom: "Aproximar o objeto escolhido",
+    zoomHint: "Desligado: o céu apenas se vira para o objeto.",
+    homeTrack: "Objeto atual na página inicial",
+    homeTrackHint: "Mostra o que está a tocar em vez da lista de objetos.",
     crossfade: "Transição entre faixas",
     autoSwitch: "Troca automática de objeto",
     autoSwitchHint: "O céu passa sozinho para outro objeto enquanto você ouve.",

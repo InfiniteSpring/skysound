@@ -10,6 +10,7 @@ const bn: Dictionary = {
     tagline: "প্রতিটি বস্তু নিজের তথ্য বাজায়: ঘূর্ণন দেয় তাল, তাপমাত্রা দেয় সুরের রং, দূরত্ব দেয় প্রতিধ্বনি।",
     groups: { solar: "সৌরজগৎ", stars: "তারা", pulsars: "পালসার", blackHoles: "কৃষ্ণগহ্বর" },
     objectsNav: "বস্তু",
+    nowPlaying: "এখন বাজছে",
   },
   search: {
     placeholder: "তারা, গ্রহ, পালসার খুঁজুন…",
@@ -35,7 +36,13 @@ const bn: Dictionary = {
     scales: { phrygian: "ফ্রিজিয়ান", harmonicMinor: "হারমোনিক মাইনর", aeolian: "মাইনর", dorian: "ডোরিয়ান", mixolydian: "মিক্সোলিডিয়ান", major: "মেজর", lydian: "লিডিয়ান" },
   },
   settings: {
-    title: "শব্দ সেটিংস",
+    title: "সেটিংস",
+    view: "দৃশ্য",
+    sound: "শব্দ",
+    zoom: "বেছে নেওয়া বস্তু জুম করুন",
+    zoomHint: "বন্ধ থাকলে: আকাশ শুধু বস্তুর দিকে ঘোরে।",
+    homeTrack: "হোম পেজে চলমান বস্তু",
+    homeTrackHint: "বস্তুর তালিকার বদলে যা বাজছে তা দেখান।",
     crossfade: "ট্র্যাকের মধ্যে রূপান্তর",
     autoSwitch: "স্বয়ংক্রিয়ভাবে বস্তু বদলান",
     autoSwitchHint: "আপনি শোনার সময় আকাশ নিজেই পরের বস্তুতে চলে যায়।",

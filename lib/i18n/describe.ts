@@ -1,4 +1,4 @@
-import { LY_PER_AU } from "../sources/normalize";
+import { LY_PER_AU } from "../sources/units";
 import type { LightCurve, SpaceObject } from "../sources/types";
 import type { Lang } from "./config";
 import { getDictionary } from "./dictionaries";

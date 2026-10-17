@@ -41,7 +41,44 @@ function Segmented<T extends string | number>({
   );
 }
 
-/** Audio settings, bottom-right — the mirror of the object info panel. Collapsed by default. */
+function Switch({
+  label,
+  hint,
+  checked,
+  onChange,
+  testId,
+}: {
+  label: string;
+  hint?: string;
+  checked: boolean;
+  onChange(v: boolean): void;
+  testId?: string;
+}) {
+  return (
+    <div>
+      <label className="flex cursor-pointer items-center justify-between gap-3 text-sm">
+        <span>{label}</span>
+        <input
+          type="checkbox"
+          role="switch"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="peer sr-only"
+          data-testid={testId}
+        />
+        <span
+          aria-hidden
+          className="relative h-5 w-9 shrink-0 rounded-full bg-white/15 transition peer-checked:bg-white after:absolute after:start-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-4 rtl:peer-checked:after:-translate-x-4 peer-checked:after:bg-black peer-focus-visible:ring-2 peer-focus-visible:ring-white/50"
+        />
+      </label>
+      {hint && <p className="mt-1 text-xs text-white/40">{hint}</p>}
+    </div>
+  );
+}
+
+const groupTitle = "text-[10px] uppercase tracking-[0.2em] text-white/35";
+
+/** Settings, bottom-right — the mirror of the object info panel. Collapsed by default. */
 export function SettingsPanel() {
   const { settings, updateSettings } = useAudio();
   const { nextSwitchIn } = useSky();
@@ -50,11 +87,7 @@ export function SettingsPanel() {
   const bodyId = useId();
 
   return (
-    <aside
-      aria-label={t.settings.title}
-      className="pointer-events-auto w-full self-end sm:max-w-sm"
-      data-testid="settings-panel"
-    >
+    <aside aria-label={t.settings.title} className="pointer-events-auto w-full self-end sm:max-w-sm" data-testid="settings-panel">
       <div className="rounded-2xl border border-white/10 bg-[#0b0d18]/50 backdrop-blur-md">
         <button
           type="button"
@@ -66,13 +99,7 @@ export function SettingsPanel() {
           <span className="text-[11px] uppercase tracking-[0.2em] text-white/50">{t.settings.title}</span>
           <span className="flex items-center gap-3 text-xs text-white/50">
             {nextSwitchIn !== null && <span data-testid="switch-countdown">{t.settings.switchIn(fmtClock(nextSwitchIn))}</span>}
-            <svg
-              aria-hidden
-              width="12"
-              height="12"
-              viewBox="0 0 12 12"
-              className={`transition-transform duration-300 ${open ? "rotate-180" : ""}`}
-            >
+            <svg aria-hidden width="12" height="12" viewBox="0 0 12 12" className={`transition-transform duration-300 ${open ? "rotate-180" : ""}`}>
               <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </span>
@@ -87,7 +114,25 @@ export function SettingsPanel() {
           }`}
         >
           <div className="overflow-hidden">
-            <div className="space-y-5 px-5 pb-5">
+            <div className="max-h-[min(42dvh,34rem)] sm:max-h-[min(62dvh,34rem)] space-y-5 overflow-y-auto overscroll-contain px-5 pb-5">
+              <div className="space-y-3">
+                <div className={groupTitle}>{t.settings.view}</div>
+                <Switch
+                  label={t.settings.zoom}
+                  hint={t.settings.zoomHint}
+                  checked={settings.zoomOnSelect}
+                  onChange={(v) => updateSettings({ zoomOnSelect: v })}
+                  testId="zoom-on-select"
+                />
+                <Switch
+                  label={t.settings.homeTrack}
+                  hint={t.settings.homeTrackHint}
+                  checked={settings.homeShowsTrack}
+                  onChange={(v) => updateSettings({ homeShowsTrack: v })}
+                  testId="home-shows-track"
+                />
+              </div>
+              <div className={`${groupTitle} border-t border-white/10 pt-4`}>{t.settings.sound}</div>
               <div>
                 <div className="flex items-baseline justify-between text-sm">
                   <label htmlFor={`${bodyId}-crossfade`}>{t.settings.crossfade}</label>
@@ -108,22 +153,13 @@ export function SettingsPanel() {
               </div>
 
               <div>
-                <label className="flex cursor-pointer items-center justify-between text-sm">
-                  <span>{t.settings.autoSwitch}</span>
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    checked={settings.autoSwitch}
-                    onChange={(e) => updateSettings({ autoSwitch: e.target.checked })}
-                    className="peer sr-only"
-                    data-testid="auto-switch"
-                  />
-                  <span
-                    aria-hidden
-                    className="relative h-5 w-9 rounded-full bg-white/15 transition peer-checked:bg-white after:absolute after:start-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-4 rtl:peer-checked:after:-translate-x-4 peer-checked:after:bg-black peer-focus-visible:ring-2 peer-focus-visible:ring-white/50"
-                  />
-                </label>
-                <p className="mt-1 text-xs text-white/40">{t.settings.autoSwitchHint}</p>
+                <Switch
+                  label={t.settings.autoSwitch}
+                  hint={t.settings.autoSwitchHint}
+                  checked={settings.autoSwitch}
+                  onChange={(v) => updateSettings({ autoSwitch: v })}
+                  testId="auto-switch"
+                />
 
                 <fieldset disabled={!settings.autoSwitch} className="mt-3 space-y-3 transition-opacity disabled:opacity-40">
                   <div>

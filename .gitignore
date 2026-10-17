@@ -44,3 +44,9 @@ next-env.d.ts
 # playwright
 /test-results/
 /playwright-report/
+
+# editors / OS
+.idea
+.vscode/*
+!.vscode/extensions.json
+Thumbs.db

@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { Suspense } from "react";
-import { ListenButton, ObjectLoader } from "@/components/ui/ObjectControls";
-import { isLang, LANGS, localizePath, pick, type Lang } from "@/lib/i18n/config";
-import { describe, formatDistance, formatMass, formatPeriod, lightCurveNote } from "@/lib/i18n/describe";
+import { JsonLd } from "@/components/JsonLd";
+import { ObjectInfo, objectTexts } from "@/components/ui/ObjectInfo";
+import { siteUrl } from "@/lib/site";
+import { ObjectLoader } from "@/components/ui/ObjectControls";
+import { isLang, LANGS, localizePath } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
-import type { ObjectDto } from "@/lib/objects/dto";
 import { getPageObject } from "@/lib/objects/queries";
 import { SEED_SLUGS } from "@/lib/seed";
 import { isValidSlug } from "@/lib/slug";
@@ -16,11 +17,6 @@ export function generateStaticParams() {
   return SEED_SLUGS.map((slug) => ({ slug }));
 }
 
-function texts(o: ObjectDto, lang: Lang) {
-  const name = pick(o.names, lang, o.name);
-  return { name, description: o.descriptions[lang] ?? describe(o, name, lang) };
-}
-
 export async function generateMetadata({ params }: PageProps<"/[lang]/object/[slug]">): Promise<Metadata> {
   const { lang, slug } = await params;
   if (!isLang(lang)) return {};
@@ -28,7 +24,7 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/object/[sl
   const page = isValidSlug(slug) ? await getPageObject(slug) : null;
   if (page?.kind !== "ready") return { title: t.object.fallbackTitle, robots: { index: false } };
   const o = page.object;
-  const { name, description } = texts(o, lang);
+  const { name, description } = objectTexts(o, lang);
   const title = `${name} — ${t.types[o.type]}`;
   const path = `/object/${o.slug}`;
   return {
@@ -39,37 +35,8 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/object/[sl
       languages: Object.fromEntries(LANGS.map((l) => [l, localizePath(path, l)])),
     },
     openGraph: { title, description, url: localizePath(path, lang), type: "article" },
-    twitter: { card: "summary", title, description },
+    twitter: { card: "summary_large_image", title, description },
   };
-}
-
-const SOURCE_LABELS: Record<string, string> = {
-  simbad: "SIMBAD",
-  gaia: "Gaia DR3",
-  atnf: "ATNF Pulsar Catalogue",
-  vsx: "AAVSO VSX",
-  jpl: "JPL Horizons",
-};
-
-function facts(o: ObjectDto, lang: Lang): [string, string][] {
-  const f = getDictionary(lang).object.facts;
-  const p = o.params;
-  const num = (v: number) => v.toLocaleString(lang);
-  const rows: [string, string | undefined][] = [
-    [f.type, getDictionary(lang).types[o.type]],
-    [f.mass, p.mass_msun ? formatMass(p.mass_msun, lang) : undefined],
-    [f.spectral, p.spectral_type],
-    [f.variability, p.variability_type],
-    [o.type === "variable_star" ? f.lightPeriod : f.spin, p.period_s ? formatPeriod(p.period_s, lang) : undefined],
-    [f.orbit, p.orbital_period_days ? formatPeriod(p.orbital_period_days * 86400, lang) : undefined],
-    [f.temperature, p.temperature_k ? `${num(Math.round(p.temperature_k))} K` : undefined],
-    [f.luminosity, p.luminosity ? `${num(Number(p.luminosity.toPrecision(3)))} L☉` : undefined],
-    [f.distance, p.distance_ly ? formatDistance(p.distance_ly, lang) : undefined],
-    [f.magnitude, p.magnitude_v !== undefined ? String(p.magnitude_v) : undefined],
-    [f.amplitude, p.amplitude_mag ? `${p.amplitude_mag} ${f.mag}` : undefined],
-    [f.coords, `${o.position.ra_deg.toFixed(3)}°, ${o.position.dec_deg.toFixed(3)}°`],
-  ];
-  return rows.filter((r): r is [string, string] => !!r[1]);
 }
 
 async function ObjectPanel({ params }: { params: PageProps<"/[lang]/object/[slug]">["params"] }) {
@@ -92,53 +59,29 @@ async function ObjectPanel({ params }: { params: PageProps<"/[lang]/object/[slug
   }
 
   const o = page.object;
-  const { name, description } = texts(o, lang);
+  const { name, description } = objectTexts(o, lang);
   return (
     <Panel back={t.object.back} home={localizePath("/", lang)}>
-      <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">{t.types[o.type]}</p>
-      <h1 className="mt-1 text-2xl font-light sm:text-3xl" data-testid="object-name">
-        {name}
-      </h1>
-      <p className="mt-3 text-sm leading-relaxed text-white/70">{description}</p>
-      <div className="mt-4">
-        <ListenButton object={o} />
-      </div>
-      <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
-        {facts(o, lang).map(([k, v]) => (
-          <div key={k} className="contents">
-            <dt className="text-white/40">{k}</dt>
-            <dd className="text-white/80">
-              {/* <bdi> keeps "3,633 K" and coordinates intact inside right-to-left pages */}
-              <bdi>{v}</bdi>
-            </dd>
-          </div>
-        ))}
-      </dl>
-      {o.lightCurve && (
-        <p className="mt-3 text-[11px] text-white/35">{lightCurveNote(o.lightCurve, o.params.variability_type, lang)}</p>
-      )}
-      <p className="mt-4 text-[11px] text-white/40">
-        {t.object.sources}:{" "}
-        {Object.entries(o.sources).map(([k, ref], i) => (
-          <span key={k}>
-            {i > 0 && ", "}
-            {ref?.url ? (
-              <a href={ref.url} target="_blank" rel="noreferrer" className="underline decoration-white/20 hover:text-white/70">
-                {SOURCE_LABELS[k] ?? k}
-              </a>
-            ) : (
-              (SOURCE_LABELS[k] ?? k)
-            )}
-          </span>
-        ))}
-      </p>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Thing",
+          name,
+          alternateName: o.name !== name ? o.name : undefined,
+          description,
+          url: `${siteUrl}${localizePath(`/object/${o.slug}`, lang)}`,
+          sameAs: Object.values(o.sources).flatMap((ref) => (ref?.url ? [ref.url] : [])),
+          inLanguage: lang,
+        }}
+      />
+      <ObjectInfo object={o} lang={lang} />
     </Panel>
   );
 }
 
 function Panel({ children, back, home }: { children: React.ReactNode; back: string; home: string }) {
   return (
-    <article className="pointer-events-auto mt-auto max-h-[36dvh] w-full max-w-sm overflow-y-auto rounded-2xl sm:max-h-full border border-white/10 bg-[#0b0d18]/50 p-5 backdrop-blur-md">
+    <article className="pointer-events-auto mt-auto max-h-[min(36dvh,100%)] w-full max-w-sm overflow-y-auto rounded-2xl sm:max-h-full border border-white/10 bg-[#0b0d18]/50 p-5 backdrop-blur-md">
       <Link href={home} scroll={false} className="text-xs text-white/40 hover:text-white/70">
         {back}
       </Link>

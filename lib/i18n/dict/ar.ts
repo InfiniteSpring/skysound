@@ -10,6 +10,7 @@ const ar: Dictionary = {
     tagline: "كل جرم يعزف بياناته: الدوران يضبط الإيقاع، والحرارة تلوّن الصوت، والمسافة تصنع الصدى.",
     groups: { solar: "المجموعة الشمسية", stars: "النجوم", pulsars: "النجوم النابضة", blackHoles: "الثقوب السوداء" },
     objectsNav: "الأجرام",
+    nowPlaying: "يُعزف الآن",
   },
   search: {
     placeholder: "ابحث عن نجم أو كوكب أو نجم نابض…",
@@ -35,7 +36,13 @@ const ar: Dictionary = {
     scales: { phrygian: "فريجي", harmonicMinor: "صغير هارموني", aeolian: "صغير", dorian: "دوري", mixolydian: "ميكسوليدي", major: "كبير", lydian: "ليدي" },
   },
   settings: {
-    title: "إعدادات الصوت",
+    title: "الإعدادات",
+    view: "العرض",
+    sound: "الصوت",
+    zoom: "تكبير الجرم المختار",
+    zoomHint: "عند الإيقاف: تلتفت السماء نحو الجرم فقط.",
+    homeTrack: "الجرم الحالي في الصفحة الرئيسية",
+    homeTrackHint: "اعرض ما يُعزف بدل قائمة الأجرام.",
     crossfade: "الانتقال بين المقاطع",
     autoSwitch: "التبديل التلقائي بين الأجرام",
     autoSwitchHint: "تنتقل السماء تلقائيًا إلى جرم آخر بينما تستمع.",

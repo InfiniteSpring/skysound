@@ -10,6 +10,7 @@ const fr: Dictionary = {
     tagline: "Chaque objet joue ses propres données : la rotation donne le tempo, la chaleur le timbre, la distance l’écho.",
     groups: { solar: "Système solaire", stars: "Étoiles", pulsars: "Pulsars", blackHoles: "Trous noirs" },
     objectsNav: "Objets",
+    nowPlaying: "En cours",
   },
   search: {
     placeholder: "Trouver une étoile, une planète, un pulsar…",
@@ -35,7 +36,13 @@ const fr: Dictionary = {
     scales: { phrygian: "phrygien", harmonicMinor: "mineur harmonique", aeolian: "mineur", dorian: "dorien", mixolydian: "mixolydien", major: "majeur", lydian: "lydien" },
   },
   settings: {
-    title: "Réglages du son",
+    title: "Réglages",
+    view: "Affichage",
+    sound: "Son",
+    zoom: "Zoomer sur l’objet choisi",
+    zoomHint: "Désactivé : le ciel se tourne seulement vers l’objet.",
+    homeTrack: "Objet en cours sur l’accueil",
+    homeTrackHint: "Affiche ce qui joue au lieu de la liste des objets.",
     crossfade: "Transition entre les morceaux",
     autoSwitch: "Changement automatique d’objet",
     autoSwitchHint: "Le ciel passe de lui-même à un autre objet pendant que vous écoutez.",

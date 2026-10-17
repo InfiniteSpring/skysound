@@ -10,6 +10,7 @@ const es: Dictionary = {
     tagline: "Cada objeto suena según sus datos: el giro marca el tempo, el calor el timbre, la distancia el eco.",
     groups: { solar: "Sistema solar", stars: "Estrellas", pulsars: "Púlsares", blackHoles: "Agujeros negros" },
     objectsNav: "Objetos",
+    nowPlaying: "Suena ahora",
   },
   search: {
     placeholder: "Busca una estrella, planeta, púlsar…",
@@ -35,7 +36,13 @@ const es: Dictionary = {
     scales: { phrygian: "frigio", harmonicMinor: "menor armónica", aeolian: "menor", dorian: "dórico", mixolydian: "mixolidio", major: "mayor", lydian: "lidio" },
   },
   settings: {
-    title: "Ajustes de sonido",
+    title: "Ajustes",
+    view: "Vista",
+    sound: "Sonido",
+    zoom: "Acercar el objeto elegido",
+    zoomHint: "Desactivado: el cielo solo gira hacia el objeto.",
+    homeTrack: "Objeto actual en la portada",
+    homeTrackHint: "Muestra lo que suena en lugar de la lista de objetos.",
     crossfade: "Transición entre pistas",
     autoSwitch: "Cambio automático de objeto",
     autoSwitchHint: "El cielo pasa solo a otro objeto mientras escuchas.",

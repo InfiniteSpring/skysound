@@ -4,6 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import { Bloom, EffectComposer, SMAA, ToneMapping, Vignette } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useAudio } from "@/components/audio/AudioProvider";
 import { useLang } from "@/components/i18n/LangProvider";
 import { useSky } from "@/components/sky/SkyProvider";
 import * as THREE from "three";
@@ -26,6 +27,8 @@ interface Layer {
 export default function SkyCanvas() {
   const { objects, selected, select, goHome } = useSky();
   const { nameOf } = useLang();
+  const { settings } = useAudio();
+  const zoom = settings.zoomOnSelect;
   const zoomRef = useRef(1);
   const labels = useRef(new Map<string, HTMLDivElement>());
   const fades = useRef(new Map<string, number>());
@@ -50,8 +53,8 @@ export default function SkyCanvas() {
     [focusObject],
   );
   const target = useMemo(
-    () => (selected ? { ra: selected.position.ra_deg, dec: selected.position.dec_deg, key: selected.slug } : null),
-    [selected],
+    () => (selected ? { ra: selected.position.ra_deg, dec: selected.position.dec_deg, key: selected.slug, zoom } : null),
+    [selected, zoom],
   );
 
   return (

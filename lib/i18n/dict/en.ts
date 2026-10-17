@@ -11,6 +11,7 @@ const en = {
     tagline: "Every object plays its own data — spin sets the tempo, heat the timbre, distance the echo.",
     groups: { solar: "Solar system", stars: "Stars", pulsars: "Pulsars", blackHoles: "Black holes" },
     objectsNav: "Objects",
+    nowPlaying: "Now playing",
   },
   search: {
     placeholder: "Find a star, planet, pulsar…",
@@ -36,7 +37,13 @@ const en = {
     scales: { phrygian: "phrygian", harmonicMinor: "harmonic minor", aeolian: "minor", dorian: "dorian", mixolydian: "mixolydian", major: "major", lydian: "lydian" } as Record<string, string>,
   },
   settings: {
-    title: "Sound settings",
+    title: "Settings",
+    view: "View",
+    sound: "Sound",
+    zoom: "Zoom in on selected objects",
+    zoomHint: "Off: the sky only turns to the object.",
+    homeTrack: "Playing object on the home page",
+    homeTrackHint: "Show what's playing instead of the object list.",
     crossfade: "Transition between tracks",
     autoSwitch: "Auto-switch objects",
     autoSwitchHint: "The sky moves on to another object by itself while you listen.",

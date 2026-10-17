@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { HomeObjects, type HomeGroup } from "@/components/ui/HomeObjects";
+import { HomeContent } from "@/components/ui/HomeContent";
 import { HomePanel } from "@/components/ui/HomePanel";
 import { isLang, pick } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -33,9 +34,11 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
     .sort((a, b) => ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
 
   return (
-    <HomePanel title={t.home.title}>
-      <p className="text-[13px] leading-relaxed text-white/55">{t.home.tagline}</p>
-      <HomeObjects groups={groups} label={t.home.objectsNav} />
-    </HomePanel>
+    <HomeContent>
+      <HomePanel title={t.home.title}>
+        <p className="text-[13px] leading-relaxed text-white/55">{t.home.tagline}</p>
+        <HomeObjects groups={groups} label={t.home.objectsNav} />
+      </HomePanel>
+    </HomeContent>
   );
 }

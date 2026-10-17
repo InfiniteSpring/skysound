@@ -4,6 +4,7 @@ import { parseGaia } from "./gaia";
 import { jplUrl, parseJpl } from "./jpl";
 import { modelLightCurve, pulsarProfile } from "./lightcurve";
 import { classifyOtype, parseSimbad, simbadUrl } from "./simbad";
+import { LY_PER_AU } from "./units";
 import type { Lang } from "../i18n/config";
 import {
   SpaceObjectSchema,
@@ -17,7 +18,7 @@ import {
 } from "./types";
 
 export const LY_PER_PC = 3.261_563_777;
-export const LY_PER_AU = 1.581_250_74e-5;
+export { LY_PER_AU };
 export const SUN_LUMINOSITY_W = 3.828e26;
 
 export interface NormalizeOptions {

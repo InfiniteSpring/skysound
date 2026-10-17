@@ -15,8 +15,8 @@ const MIN_FOV_FREE = 14;
 const MIN_FOV_FOCUSED = 2;
 
 interface Props {
-  /** RA/Dec to fly to, or null for free look. */
-  target: { ra: number; dec: number; key: string } | null;
+  /** RA/Dec to fly to, or null for free look. `zoom`: magnify into the close-up, or just turn to it. */
+  target: { ra: number; dec: number; key: string; zoom: boolean } | null;
   /** Shared with the starfield so point sizes grow slightly when zoomed in. */
   zoomRef: React.RefObject<number>;
 }
@@ -60,6 +60,15 @@ export function CameraRig({ target, zoomRef }: Props) {
     flight: null as Flight | null,
   });
   const tmp = useRef({ q: new THREE.Quaternion(), qi: new THREE.Quaternion(), dir: new THREE.Vector3() });
+
+  // Test/debug hook: the current field of view.
+  useEffect(() => {
+    const w = window as unknown as { __skysoundFov?: () => number };
+    w.__skysoundFov = () => st.current.fov;
+    return () => {
+      delete w.__skysoundFov;
+    };
+  }, []);
 
   useEffect(() => {
     const el = domElement;
@@ -121,14 +130,14 @@ export function CameraRig({ target, zoomRef }: Props) {
     };
   }, [domElement]);
 
-  const targetKey = target?.key;
+  const targetKey = target ? `${target.key}:${target.zoom}` : undefined;
   useEffect(() => {
     const s = st.current;
     s.hasTarget = !!target;
     const from = dirFrom(s.yaw, s.pitch);
     const to = target ? new THREE.Vector3(...raDecToVector(target.ra, target.dec)) : from.clone();
     const angle = from.angleTo(to) / DEG;
-    const fovTo = target ? FOCUS_FOV : BASE_FOV;
+    const fovTo = target?.zoom ? FOCUS_FOV : BASE_FOV;
     // Widen mid-flight only when the target lies well outside the current view.
     const widen = target ? Math.max(1, Math.min(4, angle / (s.fov * 0.45))) : 1;
     const span = Math.abs(Math.log(fovTo / s.fov));
@@ -142,7 +151,7 @@ export function CameraRig({ target, zoomRef }: Props) {
       duration: Math.min(4.2, 1.1 + angle / 70 + span * 0.42),
     };
     s.vYaw = s.vPitch = 0;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fly once per selected object
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fly once per selected object (and zoom setting)
   }, [targetKey]);
 
   useFrame((state, rawDt) => {

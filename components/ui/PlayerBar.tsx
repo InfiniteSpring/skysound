@@ -6,7 +6,6 @@ import { useLang } from "@/components/i18n/LangProvider";
 import { useSky } from "@/components/sky/SkyProvider";
 import { GENRE_LIST } from "@/lib/audio/genres";
 import { midiToName } from "@/lib/audio/theory";
-import { AboutButton } from "./About";
 
 const skipBtn =
   "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/60 transition hover:bg-white/10 hover:text-white disabled:opacity-30";
@@ -52,8 +51,8 @@ export function PlayerBar() {
   }, []);
 
   return (
-    <div className="pointer-events-auto w-full">
-      <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-2 gap-y-2 rounded-2xl border border-white/10 bg-[#0b0d18]/50 px-2.5 py-2 backdrop-blur-md sm:flex-nowrap sm:gap-x-3 sm:px-3">
+    <div className="pointer-events-auto min-w-0 max-w-4xl flex-1" data-testid="player-bar">
+      <div className="flex h-full flex-wrap items-center gap-x-2 gap-y-2 rounded-2xl border border-white/10 bg-[#0b0d18]/50 px-2.5 py-2 backdrop-blur-md sm:flex-nowrap sm:gap-x-3 sm:px-3">
         <div className="flex shrink-0 items-center gap-0.5">
           <button
             type="button"
@@ -162,7 +161,6 @@ export function PlayerBar() {
           className="hidden w-24 accent-white sm:block"
         />
 
-        <AboutButton />
       </div>
     </div>
   );

@@ -11,11 +11,12 @@ import { SearchBox } from "@/components/ui/SearchBox";
 import { SettingsPanel } from "@/components/ui/SettingsPanel";
 import { Brand } from "@/components/ui/Brand";
 import { BottomDock } from "@/components/ui/BottomDock";
-import { AboutProvider, AboutPush, AboutSheet } from "@/components/ui/About";
+import { AboutButton, AboutProvider, AboutPush, AboutSheet } from "@/components/ui/About";
 import { dirOf, HTML_LOCALE, isLang, LANGS, localizePath } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getSkyObjects } from "@/lib/objects/queries";
 import { siteUrl } from "@/lib/site";
+import { JsonLd } from "@/components/JsonLd";
 import "../globals.css";
 
 const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin", "cyrillic"] });
@@ -30,13 +31,23 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
   const t = getDictionary(lang);
   return {
     metadataBase: new URL(siteUrl),
+    applicationName: t.siteName,
     title: { default: t.siteName, template: `%s · ${t.siteName}` },
     description: t.siteDescription,
     alternates: {
       canonical: localizePath("/", lang),
-      languages: Object.fromEntries(LANGS.map((l) => [l, localizePath("/", l)])),
+      languages: { ...Object.fromEntries(LANGS.map((l) => [l, localizePath("/", l)])), "x-default": "/" },
     },
-    openGraph: { type: "website", siteName: t.siteName, locale: HTML_LOCALE[lang] },
+    openGraph: {
+      type: "website",
+      siteName: t.siteName,
+      title: t.siteName,
+      description: t.siteDescription,
+      url: localizePath("/", lang),
+      locale: HTML_LOCALE[lang],
+      alternateLocale: LANGS.filter((l) => l !== lang).map((l) => HTML_LOCALE[l]),
+    },
+    twitter: { card: "summary_large_image", title: t.siteName, description: t.siteDescription },
   };
 }
 
@@ -49,6 +60,19 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
   return (
     <html lang={lang} dir={dirOf(lang)} className={`${geist.variable} h-full antialiased`}>
       <body className="h-full overflow-hidden bg-[#02030a] font-sans text-white">
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            name: getDictionary(lang).siteName,
+            description: getDictionary(lang).siteDescription,
+            url: `${siteUrl}${localizePath("/", lang)}`,
+            inLanguage: lang,
+            applicationCategory: "MultimediaApplication",
+            operatingSystem: "Any (web browser)",
+            offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+          }}
+        />
         <LangProvider lang={lang}>
           <AudioProvider>
             <SkyProvider initialObjects={objects}>
@@ -67,7 +91,10 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
                   </div>
                   <BottomDock>
                     <SettingsPanel />
-                    <PlayerBar />
+                    <div className="flex w-full items-stretch justify-center gap-2">
+                      <PlayerBar />
+                      <AboutButton />
+                    </div>
                   </BottomDock>
                 </AboutPush>
                 <AboutSheet />

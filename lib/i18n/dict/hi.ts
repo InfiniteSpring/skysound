@@ -10,6 +10,7 @@ const hi: Dictionary = {
     tagline: "हर पिंड अपने आँकड़े बजाता है: घूर्णन से लय, तापमान से स्वर, दूरी से गूँज।",
     groups: { solar: "सौर मंडल", stars: "तारे", pulsars: "पल्सर", blackHoles: "कृष्ण विवर" },
     objectsNav: "पिंड",
+    nowPlaying: "अभी बज रहा है",
   },
   search: {
     placeholder: "तारा, ग्रह, पल्सर खोजें…",
@@ -35,7 +36,13 @@ const hi: Dictionary = {
     scales: { phrygian: "फ्रिजियन", harmonicMinor: "हार्मोनिक माइनर", aeolian: "माइनर", dorian: "डोरियन", mixolydian: "मिक्सोलिडियन", major: "मेजर", lydian: "लिडियन" },
   },
   settings: {
-    title: "ध्वनि सेटिंग्स",
+    title: "सेटिंग्स",
+    view: "दृश्य",
+    sound: "ध्वनि",
+    zoom: "चुने गए पिंड को ज़ूम करें",
+    zoomHint: "बंद होने पर: आकाश सिर्फ़ पिंड की ओर मुड़ता है।",
+    homeTrack: "होम पेज पर चल रहा पिंड",
+    homeTrackHint: "पिंडों की सूची की जगह वह दिखाएँ जो बज रहा है।",
     crossfade: "ट्रैकों के बीच बदलाव",
     autoSwitch: "पिंड अपने आप बदलें",
     autoSwitchHint: "जब आप सुन रहे हों, आकाश खुद अगले पिंड पर चला जाता है।",

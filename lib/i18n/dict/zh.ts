@@ -9,6 +9,7 @@ const zh: Dictionary = {
     tagline: "每个天体都用自己的数据演奏：自转决定节奏，温度决定音色，距离决定回声。",
     groups: { solar: "太阳系", stars: "恒星", pulsars: "脉冲星", blackHoles: "黑洞" },
     objectsNav: "天体",
+    nowPlaying: "正在播放",
   },
   search: {
     placeholder: "搜索恒星、行星、脉冲星…",
@@ -34,7 +35,13 @@ const zh: Dictionary = {
     scales: { phrygian: "弗里几亚调式", harmonicMinor: "和声小调", aeolian: "小调", dorian: "多利亚调式", mixolydian: "混合利底亚调式", major: "大调", lydian: "利底亚调式" },
   },
   settings: {
-    title: "声音设置",
+    title: "设置",
+    view: "显示",
+    sound: "声音",
+    zoom: "放大所选天体",
+    zoomHint: "关闭时：天空只会转向该天体。",
+    homeTrack: "在首页显示当前天体",
+    homeTrackHint: "显示正在播放的天体，而不是天体列表。",
     crossfade: "曲目之间的过渡",
     autoSwitch: "自动切换天体",
     autoSwitchHint: "你聆听时，星空会自动转到下一个天体。",

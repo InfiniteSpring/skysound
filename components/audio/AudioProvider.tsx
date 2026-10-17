@@ -15,6 +15,10 @@ export interface AudioSettings {
   autoSwitch: boolean;
   switchMinutes: number;
   switchOrder: SwitchOrder;
+  /** Magnify the selected object into its close-up (off: the camera only turns to it). */
+  zoomOnSelect: boolean;
+  /** On the home page, show the playing object's card instead of the object list. */
+  homeShowsTrack: boolean;
 }
 
 export const DEFAULT_SETTINGS: AudioSettings = {
@@ -22,6 +26,8 @@ export const DEFAULT_SETTINGS: AudioSettings = {
   autoSwitch: false,
   switchMinutes: 10,
   switchOrder: "random",
+  zoomOnSelect: false,
+  homeShowsTrack: true,
 };
 
 interface AudioApi {
@@ -83,6 +89,8 @@ export function sanitizeSettings(v: unknown): AudioSettings {
     switchOrder: ["random", "sequential", "same_type"].includes(s.switchOrder as string)
       ? (s.switchOrder as SwitchOrder)
       : DEFAULT_SETTINGS.switchOrder,
+    zoomOnSelect: typeof s.zoomOnSelect === "boolean" ? s.zoomOnSelect : DEFAULT_SETTINGS.zoomOnSelect,
+    homeShowsTrack: typeof s.homeShowsTrack === "boolean" ? s.homeShowsTrack : DEFAULT_SETTINGS.homeShowsTrack,
   };
 }
 

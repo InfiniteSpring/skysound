@@ -10,6 +10,7 @@ const ur: Dictionary = {
     tagline: "ہر جرم اپنے اعداد و شمار بجاتا ہے: گردش سے تال، حرارت سے لَے کا رنگ، فاصلے سے گونج۔",
     groups: { solar: "نظامِ شمسی", stars: "ستارے", pulsars: "پلسار", blackHoles: "بلیک ہول" },
     objectsNav: "اجرام",
+    nowPlaying: "اب چل رہا ہے",
   },
   search: {
     placeholder: "ستارہ، سیارہ، پلسار تلاش کریں…",
@@ -35,7 +36,13 @@ const ur: Dictionary = {
     scales: { phrygian: "فریجین", harmonicMinor: "ہارمونک مائنر", aeolian: "مائنر", dorian: "ڈورین", mixolydian: "مکسولیڈین", major: "میجر", lydian: "لیڈین" },
   },
   settings: {
-    title: "آواز کی ترتیبات",
+    title: "ترتیبات",
+    view: "منظر",
+    sound: "آواز",
+    zoom: "منتخب جرم کو زوم کریں",
+    zoomHint: "بند ہو تو: آسمان صرف جرم کی طرف مڑتا ہے۔",
+    homeTrack: "ہوم پیج پر چلتا ہوا جرم",
+    homeTrackHint: "اجرام کی فہرست کے بجائے وہ دکھائیں جو چل رہا ہے۔",
     crossfade: "ٹریکس کے درمیان منتقلی",
     autoSwitch: "جرم خودکار طور پر بدلیں",
     autoSwitchHint: "جب آپ سن رہے ہوں، آسمان خود اگلے جرم پر چلا جاتا ہے۔",
