@@ -8,7 +8,7 @@ import type { ObjectDto } from "@/lib/objects/dto";
 import { raDecToVector, SKY_RADIUS } from "@/lib/sky/coords";
 import { type Visual, visualFor } from "@/lib/sky/visuals";
 import { Backdrop, Binary, BlackHole, Comet, Planet, Pulsar } from "./Bodies";
-import { FadeContext, StarBody } from "./fx";
+import { FadeContext, Glow, StarBody } from "./fx";
 
 /** Telescope view the camera zooms to on selection (degrees): 10× magnification from the wide sky (62°). */
 export const FOCUS_FOV = 62 / 10;
@@ -30,7 +30,12 @@ export function closeUpPixelRadius(fovDeg: number, viewportHeight: number) {
 export function Body({ visual }: { visual: Visual }) {
   switch (visual.kind) {
     case "star":
-      return <StarBody look={visual.star} pulse={visual.pulse} />;
+      return (
+        <>
+          <StarBody look={visual.star} pulse={visual.pulse} />
+          {visual.star.glare ? <Glow size={visual.star.radius * visual.star.glare} color={visual.star.color} power={3.2} gain={0.55} /> : null}
+        </>
+      );
     case "binary":
       return <Binary v={visual} />;
     case "planet":
@@ -44,10 +49,17 @@ export function Body({ visual }: { visual: Visual }) {
   }
 }
 
-/** Invisible disc that catches clicks on the object. */
-export function HitDisc({ radius }: { radius: number }) {
+/** Invisible disc that catches clicks on the object (and selects it, when given `onSelect`). */
+export function HitDisc({ radius, onSelect }: { radius: number; onSelect?: () => void }) {
   return (
-    <mesh onClick={(e) => e.stopPropagation()}>
+    <mesh
+      onClick={(e) => {
+        e.stopPropagation();
+        if (e.delta <= 6) onSelect?.();
+      }}
+      onPointerOver={() => onSelect && (document.body.style.cursor = "pointer")}
+      onPointerOut={() => onSelect && (document.body.style.cursor = "")}
+    >
       <circleGeometry args={[radius, 32]} />
       <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
     </mesh>
@@ -65,6 +77,8 @@ function extentOf(v: Visual) {
       return 1.8; // the hole and its disk; the companion's orbit is mostly empty sky
     case "comet":
       return 3;
+    case "star":
+      return v.star.radius * 1.4;
     default:
       return 1.4;
   }
@@ -84,12 +98,18 @@ export function CloseUp({
   active,
   onGone,
   fades,
+  resident = false,
+  onSelect,
 }: {
   object: ObjectDto;
   active: boolean;
   onGone(slug: string): void;
   /** Shared slug → fade map, so the sky marker can crossfade with this close-up. */
   fades: React.RefObject<Map<string, number>>;
+  /** Always shown (the Sun, the Moon), selected or not; never goes away. */
+  resident?: boolean;
+  /** Clicking the body selects it (residents are clicked here, not on a marker). */
+  onSelect?: () => void;
 }) {
   const leftAt = useRef<number | null>(null);
   const group = useRef<THREE.Group>(null);
@@ -123,17 +143,17 @@ export function CloseUp({
     if (active) leftAt.current = null;
     else leftAt.current ??= clock.elapsedTime;
     const away = leftAt.current !== null && clock.elapsedTime - leftAt.current > 2.5;
-    const target = active ? 1 : away ? 0 : 1 - smooth(38, 55, fov);
+    const target = resident || active ? 1 : away ? 0 : 1 - smooth(38, 55, fov);
     fadeRef.current += (target - fadeRef.current) * (1 - Math.exp(-dt * (active ? 2.5 : 4)));
     fades.current?.set(object.slug, fadeRef.current);
-    if (!active && fadeRef.current < 0.01 && !gone.current) {
+    if (!resident && !active && fadeRef.current < 0.01 && !gone.current) {
       gone.current = true;
       fades.current?.delete(object.slug);
       onGone(object.slug);
     }
     // At the 10× focus the real starfield is still dense enough; the deep-field layer only
     // helps if the user zooms further in with the wheel.
-    backdropRef.current = fadeRef.current * (1 - smooth(3, 5, fov));
+    backdropRef.current = active ? fadeRef.current * (1 - smooth(3, 5, fov)) : 0;
     g.visible = fadeRef.current > 0.003;
     g.lookAt(0, 0, 0); // local +z towards the observer
   });
@@ -141,7 +161,7 @@ export function CloseUp({
   return (
     <group ref={group} position={position} scale={CLOSEUP_SIZE} visible={false}>
       {/* Clicking the object itself is not a click on empty sky (which would fly home). */}
-      <HitDisc radius={extentOf(visual)} />
+      <HitDisc radius={extentOf(visual)} onSelect={onSelect} />
       <FadeContext.Provider value={fadeRef}>
         <Backdrop seed={seed} opacityRef={backdropRef} />
         <Body visual={visual} />

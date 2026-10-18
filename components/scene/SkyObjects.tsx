@@ -5,6 +5,7 @@ import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { ObjectDto } from "@/lib/objects/dto";
 import { kelvinToRgb, raDecToVector, SKY_RADIUS } from "@/lib/sky/coords";
+import { RESIDENT_SLUGS, visualFor } from "@/lib/sky/visuals";
 import { closeUpPixelRadius } from "./closeup/CloseUp";
 
 /** Field of view at which markers have their nominal size; they keep that on-screen size at any zoom. */
@@ -12,31 +13,33 @@ const BASE_FOV = 62;
 
 let glow: THREE.Texture | null = null;
 
-function canvasTexture(draw: (ctx: CanvasRenderingContext2D, size: number) => void) {
-  const size = 128;
+/** A radial texture from a brightness profile f(r), r = 0 (centre) … 1 (edge). */
+function radialTexture(f: (r: number, angle: number) => number, size = 128) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
-  draw(canvas.getContext("2d")!, size);
+  const ctx = canvas.getContext("2d")!;
+  const img = ctx.createImageData(size, size);
+  for (let y = 0; y < size; y++)
+    for (let x = 0; x < size; x++) {
+      const dx = (x + 0.5) / size - 0.5;
+      const dy = (y + 0.5) / size - 0.5;
+      const r = Math.hypot(dx, dy) * 2;
+      const a = Math.min(1, Math.max(0, f(r, Math.atan2(dy, dx)))) * (r < 1 ? 1 : 0);
+      const i = (y * size + x) * 4;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = 255;
+      img.data[i + 3] = Math.round(a * 255);
+    }
+  ctx.putImageData(img, 0, 0);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 
+/** A point of light with a soft glow around it: no disc, no hard shoulder. */
 function glowTexture() {
-  glow ??= canvasTexture((ctx, s) => {
-    const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
-    // Crisp core with a short, faint falloff: a point of light, not a grey smudge.
-    g.addColorStop(0, "rgba(255,255,255,1)");
-    g.addColorStop(0.07, "rgba(255,255,255,0.95)");
-    g.addColorStop(0.16, "rgba(255,255,255,0.32)");
-    g.addColorStop(0.35, "rgba(255,255,255,0.07)");
-    g.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, s, s);
-  });
+  glow ??= radialTexture((r) => Math.exp(-((r / 0.07) ** 2)) + 0.16 * Math.exp(-((r / 0.3) ** 2)) * (1 - r));
   return glow;
 }
-
 
 const TYPE_COLOR: Partial<Record<ObjectDto["type"], string>> = {
   planet: "#e9cfa3",
@@ -47,16 +50,18 @@ const TYPE_COLOR: Partial<Record<ObjectDto["type"], string>> = {
 };
 
 const TYPE_SIZE: Record<ObjectDto["type"], number> = {
-  star: 5.2,
-  planet: 3.6,
-  pulsar: 3.2,
-  variable_star: 4.4,
-  star_system: 4.2,
-  moon: 2.6,
-  small_body: 2.4,
-  black_hole: 3.4,
-  other: 3,
+  star: 4.4,
+  planet: 3,
+  pulsar: 2.7,
+  variable_star: 3.7,
+  star_system: 3.6,
+  moon: 2.2,
+  small_body: 2,
+  black_hole: 2.9,
+  other: 2.5,
 };
+/** Click target size for residents (the Sun, the Moon), whose bodies are drawn for real. */
+const RESIDENT_SIZE = 12;
 
 function colorFor(o: ObjectDto) {
   const preset = TYPE_COLOR[o.type];
@@ -106,7 +111,15 @@ function Marker({
     [object.position.ra_deg, object.position.dec_deg],
   );
   const color = useMemo(() => colorFor(object), [object]);
-  const base = TYPE_SIZE[object.type] * (object.slug === "sun" ? 1.3 : 1);
+  const resident = RESIDENT_SLUGS.has(object.slug);
+  const base = resident ? RESIDENT_SIZE : TYPE_SIZE[object.type];
+  /** Where the label goes, below the visible core (the Sun's glow is mostly faint). */
+  const labelOffset = resident ? 0 : base * 4.6 + 10;
+  /** Radius of this object's close-up (relative units), so its label clears the drawn body. */
+  const bodyRadius = useMemo(() => {
+    const v = visualFor(object);
+    return v.kind === "star" ? v.star.radius : v.kind === "planet" ? v.radius : 1;
+  }, [object]);
   const samples = object.lightCurve?.samples;
   const rate = object.type === "pulsar" && object.params.period_s ? visibleRate(object.params.period_s) : 0;
   const phaseOffset = position[0] * 7.3;
@@ -114,6 +127,7 @@ function Marker({
 
   const scaler = useRef<THREE.Group>(null);
   const glowMat = useRef<THREE.SpriteMaterial>(null);
+
   /** How hidden the marker is right now; a hidden marker must not catch clicks either. */
   const hideRef = useRef(0);
 
@@ -127,8 +141,10 @@ function Marker({
     const px = closeUpPixelRadius(fov, size.height);
     // Crossfade with the close-up: the marker returns as the model fades away.
     const cf = hasCloseUp ? closeUpFade() : 0;
-    let hide = Math.min(1, Math.max(0, (px - 3) / 10)) * cf;
-    let labelHide = Math.min(1, Math.max(0, (px - 8) / 30)) * cf;
+    // Residents (the Sun, the Moon) are always drawn as real bodies: no glow sprite, and the
+    // label only steps aside when that body is the selected close-up.
+    let hide = resident ? 1 : Math.min(1, Math.max(0, (px - 3) / 10)) * cf;
+    let labelHide = resident && !selected ? 0 : Math.min(1, Math.max(0, (px - 8) / 30)) * cf;
     // Neighbours that would sit on top of a large close-up (Titan beside Saturn) step aside.
     if (!hasCloseUp && focus && px > 6) {
       const screenDist = dir.angleTo(focus) / ((fov * Math.PI) / 180) * size.height;
@@ -136,8 +152,9 @@ function Marker({
       hide = Math.max(hide, overlap);
       labelHide = Math.max(labelHide, overlap);
     }
-    hideRef.current = hide;
+    hideRef.current = resident ? 0 : hide; // a resident's (invisible) sprite still takes clicks
     if (glowMat.current) glowMat.current.opacity = 1 - hide;
+
     if (yieldTo && !selected && !hovered) {
       const sep = (dir.angleTo(yieldTo) / ((fov * Math.PI) / 180)) * size.height;
       labelHide = Math.max(labelHide, 1 - Math.min(1, Math.max(0, (sep - 30) / 20)));
@@ -151,7 +168,7 @@ function Marker({
       const opacity = visible ? labelOpacity : 0;
       if (visible) {
         const x = (projected.x * 0.5 + 0.5) * size.width;
-        const y = (-projected.y * 0.5 + 0.5) * size.height + base * 4.6 + 10;
+        const y = (-projected.y * 0.5 + 0.5) * size.height + Math.max(labelOffset, px * bodyRadius * cf + 14);
         el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translateX(-50%)`;
       }
       if (opacity !== lastLabelOpacity.current) {
@@ -195,7 +212,14 @@ function Marker({
             document.body.style.cursor = "";
           }}
         >
-          <spriteMaterial ref={glowMat} map={glowTexture()} color={color} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+          <spriteMaterial
+            ref={glowMat}
+            map={glowTexture()}
+            color={color}
+            transparent
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+          />
         </sprite>
       </group>
     </group>

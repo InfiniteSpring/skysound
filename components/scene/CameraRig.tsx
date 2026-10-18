@@ -19,6 +19,8 @@ interface Props {
   target: { ra: number; dec: number; key: string; zoom: boolean } | null;
   /** Shared with the starfield so point sizes grow slightly when zoomed in. */
   zoomRef: React.RefObject<number>;
+  /** Where the sky first looks: the linked object, or the Sun's side. */
+  initial?: { ra: number; dec: number } | null;
 }
 
 interface Flight {
@@ -41,11 +43,12 @@ const dirFrom = (yaw: number, pitch: number) => new THREE.Vector3(...raDecToVect
  * great-circle turn while the zoom glides in log space to telescope magnification, so
  * 62° → 1.2° feels perceptually even. Any drag or wheel input hands control back at once.
  */
-export function CameraRig({ target, zoomRef }: Props) {
+export function CameraRig({ target, zoomRef, initial }: Props) {
   const domElement = useThree((s) => s.gl.domElement);
   const st = useRef({
-    yaw: 85 * DEG, // start near Orion
-    pitch: 5 * DEG,
+    // Open facing the linked object or the Sun (that side of the sky, not a close-up).
+    yaw: (initial?.ra ?? 85) * DEG,
+    pitch: Math.max(-MAX_PITCH, Math.min(MAX_PITCH, (initial?.dec ?? 5) * DEG)),
     vYaw: 0,
     vPitch: 0,
     fov: BASE_FOV,

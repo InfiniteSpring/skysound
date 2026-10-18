@@ -10,8 +10,10 @@ import { useSky } from "@/components/sky/SkyProvider";
 import * as THREE from "three";
 import type { ObjectDto } from "@/lib/objects/dto";
 import { raDecToVector } from "@/lib/sky/coords";
+import { RESIDENT_SLUGS } from "@/lib/sky/visuals";
 import { CameraRig } from "./CameraRig";
 import { CloseUp } from "./closeup/CloseUp";
+import { SunDirContext } from "./closeup/fx";
 import { Warmup } from "./closeup/Warmup";
 import { SkyLabels, SkyObjects } from "./SkyObjects";
 import { Starfield } from "./Starfield";
@@ -35,19 +37,30 @@ export default function SkyCanvas() {
   const downRef = useRef<{ x: number; y: number } | null>(null);
 
   // The selected object's close-up plus any that are still fading out.
+  // Residents (the Sun, the Moon) are always drawn as real bodies and never come or go.
+  const residents = useMemo(() => objects.filter((o) => RESIDENT_SLUGS.has(o.slug)), [objects]);
+  const sun = residents.find((o) => o.slug === "sun") ?? null;
+  const sunDir = useMemo(() => (sun ? new THREE.Vector3(...raDecToVector(sun.position.ra_deg, sun.position.dec_deg)) : null), [sun]);
+  // First view: a linked object's own patch of sky, otherwise the Sun's side.
+  const [initial] = useState(() => {
+    const at = selected ?? sun;
+    return at ? { ra: at.position.ra_deg, dec: at.position.dec_deg } : null;
+  });
+
   const [layers, setLayers] = useState<Layer[]>([]);
   const [shownSlug, setShownSlug] = useState<string | null>(null);
   if ((selected?.slug ?? null) !== shownSlug) {
     setShownSlug(selected?.slug ?? null);
+    const pick = selected && !RESIDENT_SLUGS.has(selected.slug) ? selected : null;
     setLayers((prev) => {
-      const leaving = prev.filter((l) => l.object.slug !== selected?.slug).map((l) => ({ ...l, active: false }));
-      return selected ? [...leaving, { object: selected, active: true }] : leaving;
+      const leaving = prev.filter((l) => l.object.slug !== pick?.slug).map((l) => ({ ...l, active: false }));
+      return pick ? [...leaving, { object: pick, active: true }] : leaving;
     });
   }
   const onGone = useCallback((slug: string) => setLayers((prev) => prev.filter((l) => l.active || l.object.slug !== slug)), []);
 
-  const closeUpSlugs = useMemo(() => new Set(layers.map((l) => l.object.slug)), [layers]);
-  const focusObject = layers.at(-1)?.object ?? null;
+  const closeUpSlugs = useMemo(() => new Set([...layers.map((l) => l.object.slug), ...residents.map((o) => o.slug)]), [layers, residents]);
+  const focusObject = (selected && RESIDENT_SLUGS.has(selected.slug) ? selected : layers.at(-1)?.object) ?? null;
   const focus = useMemo(
     () => (focusObject ? new THREE.Vector3(...raDecToVector(focusObject.position.ra_deg, focusObject.position.dec_deg)) : null),
     [focusObject],
@@ -82,11 +95,24 @@ export default function SkyCanvas() {
       <color attach="background" args={["#010208"]} />
       <Starfield zoomRef={zoomRef} />
       <SkyObjects objects={objects} selectedSlug={selected?.slug ?? null} closeUpSlugs={closeUpSlugs} focus={focus} labels={labels} fades={fades} onSelect={select} />
-      {layers.map((l) => (
-        <CloseUp key={l.object.slug} object={l.object} active={l.active} onGone={onGone} fades={fades} />
-      ))}
+      <SunDirContext.Provider value={sunDir}>
+        {residents.map((o) => (
+          <CloseUp
+            key={o.slug}
+            object={o}
+            active={selected?.slug === o.slug}
+            resident
+            onSelect={() => select(o)}
+            onGone={onGone}
+            fades={fades}
+          />
+        ))}
+        {layers.map((l) => (
+          <CloseUp key={l.object.slug} object={l.object} active={l.active} onGone={onGone} fades={fades} />
+        ))}
+      </SunDirContext.Provider>
       <Warmup objects={objects} />
-      <CameraRig target={target} zoomRef={zoomRef} />
+      <CameraRig target={target} zoomRef={zoomRef} initial={initial} />
       {/* MSAA on HDR buffers is expensive; SMAA gives clean edges for a fraction of the cost. */}
       <EffectComposer multisampling={0}>
         <Bloom mipmapBlur intensity={0.6} luminanceThreshold={0.95} luminanceSmoothing={0.25} radius={0.72} />

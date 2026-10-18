@@ -11,14 +11,17 @@ export { QUAD_VERTEX, SPHERE_VERTEX } from "./glsl";
  */
 export const STAR_FRAGMENT = /* glsl */ `
 ${NOISE}
-uniform float uTime, uOpacity, uGran, uContrast, uSpots, uBoost, uHDR;
+uniform float uTime, uOpacity, uGran, uContrast, uSpots, uBoost, uHDR, uSpin, uBelts;
 uniform vec3 uColor;
 varying vec3 vPos;
 varying vec3 vNormalV;
 varying vec3 vViewDir;
 void main() {
-  vec3 p = normalize(vPos);
+  vec3 p0 = normalize(vPos);
   float t = uTime;
+  // The surface turns about the (vertical) rotation axis.
+  float sa = sin(t * uSpin), ca = cos(t * uSpin);
+  vec3 p = vec3(ca * p0.x + sa * p0.z, p0.y, -sa * p0.x + ca * p0.z);
   vec3 flow = vec3(snoise(p * 1.7 + vec3(t * 0.012, 0.0, 0.0)),
                    snoise(p * 1.7 + vec3(5.2, t * 0.010, 1.3)),
                    snoise(p * 1.7 + vec3(2.8, 7.1, t * 0.011)));
@@ -31,6 +34,13 @@ void main() {
   float large = fbm3(p * 3.0 + t * 0.005) * 0.5 + 0.5;       // supergranulation
 
   float sn = snoise(p * 1.8 + vec3(11.0, 0.0, t * 0.004));
+  if (uBelts > 0.0) {
+    // Sunspot groups: small, clustered, only in the mid-latitude belts of both hemispheres.
+    float lat = abs(p.y);
+    float belt = smoothstep(0.1, 0.24, lat) * smoothstep(0.58, 0.36, lat);
+    float group = smoothstep(0.45, 0.8, snoise(p * 2.2 + vec3(3.0, 0.0, t * 0.002)));
+    sn = (snoise(p * 6.5 + vec3(11.0, 0.0, t * 0.003)) * 0.5 + 0.5) * belt * group * 1.12;
+  }
   float pen = smoothstep(0.42, 0.52, sn) * uSpots;
   float umb = smoothstep(0.56, 0.63, sn) * uSpots;
   float penTex = 0.75 + 0.25 * sin(atan(p.z, p.x) * 90.0 + sn * 40.0);
@@ -53,7 +63,7 @@ void main() {
  */
 export const STAR_HALO_FRAGMENT = /* glsl */ `
 ${NOISE}
-uniform float uTime, uOpacity, uSize, uCorona, uChromo, uProm;
+uniform float uTime, uOpacity, uSize, uCorona, uChromo, uProm, uRays;
 uniform vec3 uColor;
 varying vec2 vUv;
 void main() {
@@ -65,7 +75,7 @@ void main() {
 
   float streamers = snoise(vec3(dir * 2.6, h * 0.5 - uTime * 0.025)) * 0.35 + snoise(vec3(dir * 5.3, h * 0.9 - uTime * 0.03)) * 0.15 + 0.5;
   float rays = snoise(vec3(dir * 16.0, h * 0.3 - uTime * 0.05)) * 0.5 + 0.5;
-  float corona = pow(1.0 / r, 4.0) * (0.3 + 0.8 * streamers * streamers + 0.15 * rays) * uCorona;
+  float corona = pow(1.0 / r, 4.0) * (0.3 + 0.8 * streamers * streamers + 0.15 * rays * uRays) * uCorona * mix(0.6, 1.0, uRays);
 
   float chromo = exp(-pow(h / 0.03, 2.0)) * uChromo; // wide enough to stay smooth on screen
 

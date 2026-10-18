@@ -90,7 +90,7 @@ test("selecting objects plays music that survives navigation, genre and language
   await expect(page).toHaveURL(/\/object\/jupiter$/);
   await expect(objectName(page)).toHaveText("Jupiter");
   await expect(toggle).toHaveAttribute("aria-label", "Pause", { timeout: 15_000 });
-  await expect(page.getByText(/BPM/)).toBeVisible();
+  await expect(byId(page, "player-bar").getByText(/BPM/)).toBeVisible();
   expect(await ctxState(page)).toBe("running");
 
   // Pause, then explicitly pick another object: it plays, in the same AudioContext.
@@ -176,6 +176,8 @@ test("clicking the zoomed object keeps it selected; clicking empty sky goes home
   await withSettings(page, { zoomOnSelect: true });
   await page.goto("/object/saturn");
   await expect.poll(async () => (await closeUp())?.fade ?? 0, { timeout: 10_000 }).toBeGreaterThan(0.95);
+  // Wait for the telescope zoom to finish: until then Titan still sits beside Saturn.
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __skysoundFov?: () => number }).__skysoundFov?.() ?? 99), { timeout: 10_000 }).toBeLessThan(7);
 
   // The subject sits right of centre (shifted clear of the info panel).
   const { w, h } = await page.evaluate(() => ({ w: innerWidth, h: innerHeight }));

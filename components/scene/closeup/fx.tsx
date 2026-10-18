@@ -11,6 +11,9 @@ import { GLOW_FRAGMENT, QUAD_VERTEX, SPHERE_VERTEX, STAR_FRAGMENT, STAR_HALO_FRA
 export const FadeContext = createContext<React.RefObject<number>>({ current: 0 });
 export const useFadeRef = () => useContext(FadeContext);
 
+/** Direction of the Sun in the sky (world space, unit), for bodies lit by it (the Moon's phase). */
+export const SunDirContext = createContext<THREE.Vector3 | null>(null);
+
 type UniformValue = number | RGB | string | THREE.Vector3 | THREE.Vector4;
 
 /** Colours are authored in sRGB; shaders work in linear light. */
@@ -88,7 +91,7 @@ export function Glow({ size, color, power = 2.5, gain = 1 }: { size: number; col
  * `pulse` (normalized light curve) breathes size and brightness over ~6 s; `flares` adds
  * red-dwarf outbursts.
  */
-export function StarBody({ look, pulse = null, hdr = 1.6 }: { look: StarLook; pulse?: number[] | null; hdr?: number }) {
+export function StarBody({ look, pulse = null, hdr = look.hdr ?? 1.6 }: { look: StarLook; pulse?: number[] | null; hdr?: number }) {
   // Body and halo breathe together: scaling only the sphere would open a gap where the
   // halo's bright inner edge shows through as a white ring.
   const body = useRef<THREE.Group>(null);
@@ -115,7 +118,16 @@ export function StarBody({ look, pulse = null, hdr = 1.6 }: { look: StarLook; pu
           materialRef={mat}
           vertex={SPHERE_VERTEX}
           fragment={STAR_FRAGMENT}
-          uniforms={{ uColor: look.color, uGran: look.granulation, uContrast: look.contrast, uSpots: look.spots, uBoost: 1, uHDR: hdr }}
+          uniforms={{
+            uColor: look.color,
+            uGran: look.granulation,
+            uContrast: look.contrast,
+            uSpots: look.spots,
+            uBoost: 1,
+            uHDR: hdr,
+            uSpin: look.spin ?? 0,
+            uBelts: look.spotBelts ? 1 : 0,
+          }}
         />
       </mesh>
       {look.corona > 0 && (
@@ -125,7 +137,7 @@ export function StarBody({ look, pulse = null, hdr = 1.6 }: { look: StarLook; pu
             <FX
               vertex={QUAD_VERTEX}
               fragment={STAR_HALO_FRAGMENT}
-              uniforms={{ uColor: look.color, uSize: haloSize, uCorona: 0.45, uChromo: look.activity, uProm: look.activity }}
+              uniforms={{ uColor: look.color, uSize: haloSize, uCorona: 0.45, uChromo: look.activity, uProm: look.activity, uRays: look.rays ?? 1 }}
               additive
             />
           </mesh>

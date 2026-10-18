@@ -2,10 +2,10 @@
 
 import { Billboard } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useContext, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { StarLook, Visual } from "@/lib/sky/visuals";
-import { FX, Glow, StarBody } from "./fx";
+import { FX, Glow, StarBody, SunDirContext } from "./fx";
 import {
   ATMOSPHERE_FRAGMENT,
   BEAM_FRAGMENT,
@@ -46,13 +46,18 @@ export function Planet({ v }: { v: V<"planet"> }) {
   );
   const { look } = v;
   const ring = v.rings;
+  const sunDir = useContext(SunDirContext);
 
   useFrame(({ camera }, dt) => {
     const g = tilt.current;
     if (!g) return;
     spin.current += (dt * 2 * Math.PI) / v.spinS;
     const cam = g.worldToLocal(tmp.cam.copy(camera.position));
-    const light = tmp.light.copy(LIGHT).applyQuaternion(tmp.q.copy(g.quaternion).invert());
+    // The real Sun direction (into the tilt frame) for the Moon's phase; otherwise a studio light.
+    const light =
+      v.sunLit && sunDir
+        ? tmp.light.copy(sunDir).applyQuaternion(g.getWorldQuaternion(tmp.q).invert())
+        : tmp.light.copy(LIGHT).applyQuaternion(tmp.q.copy(g.quaternion).invert());
     for (const m of [surfaceMat.current, atmoMat.current, ringMat.current]) {
       if (!m) continue;
       m.uniforms.uCamPos.value.copy(cam);

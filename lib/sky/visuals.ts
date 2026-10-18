@@ -24,6 +24,16 @@ export interface StarLook {
   flares: boolean;
   /** Magnetic activity: prominences and chromosphere strength (0 for hot stars). */
   activity: number;
+  /** Strength of fine radial rays in the corona (0 = smooth). */
+  rays?: number;
+  /** Spots confined to mid-latitude activity belts, like the Sun's (instead of anywhere). */
+  spotBelts?: boolean;
+  /** Visible rotation of the surface, radians per second. */
+  spin?: number;
+  /** Surface brightness (HDR); lower keeps a bright disc from blooming into a blur. */
+  hdr?: number;
+  /** A wide soft glare around the disc, in radii (the Sun, seen with the naked eye). */
+  glare?: number;
 }
 
 export interface PlanetLook {
@@ -56,7 +66,16 @@ export interface RingLook {
 export type Visual =
   | { kind: "star"; star: StarLook; pulse: number[] | null }
   | { kind: "binary"; a: StarLook; b: StarLook; separation: number; inclination: number; periodS: number }
-  | { kind: "planet"; look: PlanetLook; rings: RingLook | null; tiltDeg: number; spinS: number; radius: number }
+  | {
+      kind: "planet";
+      look: PlanetLook;
+      rings: RingLook | null;
+      tiltDeg: number;
+      spinS: number;
+      radius: number;
+      /** Lit from the Sun's real direction in the sky, so it shows its true phase (our Moon). */
+      sunLit?: boolean;
+    }
   | { kind: "comet" }
   | { kind: "pulsar"; spinHz: number; nebula: { colors: [string, string]; size: number } | null }
   | {
@@ -129,6 +148,20 @@ function star(temperature: number, spectral: string | undefined, over: Partial<S
   };
 }
 
+/**
+ * The Sun's radius in close-up units (1 unit ≈ 2 px across a 900 px-high sky at the wide
+ * view). It is always on screen as a real disc, so it is drawn larger than its true 0.27°
+ * (1.7 units) to read as the Sun from the wide view; zooming in magnifies it naturally.
+ */
+export const SUN_RADIUS = 8;
+/** Our Moon: just a little smaller than the Sun, as in the real sky. */
+export const MOON_RADIUS = 7.2;
+/**
+ * Objects always drawn as real bodies at a fixed size in the sky (not as markers), so they
+ * grow when you zoom in like they would through binoculars.
+ */
+export const RESIDENT_SLUGS: ReadonlySet<string> = new Set(["sun", "moon"]);
+
 const PLANETS: Record<string, Omit<Extract<Visual, { kind: "planet" }>, "kind">> = {
   mercury: {
     radius: 0.8, tiltDeg: 0, spinS: 60, rings: null,
@@ -142,9 +175,12 @@ const PLANETS: Record<string, Omit<Extract<Visual, { kind: "planet" }>, "kind">>
     radius: 0.85, tiltDeg: 25, spinS: 40, rings: null,
     look: { gas: false, bump: 0.25, colors: ["#b8603a", "#d99868", "#8a4428"], bands: 0, bandFreq: 0, turbulence: 0, craters: 0.3, polarCaps: 0.06, spot: null, atmosphere: { color: "#ff9d70", strength: 0.15 } },
   },
+  // The Moon is as wide in our sky as the Sun (0.52° vs 0.53°): drawn nearly as large, lit
+  // from the Sun's real direction (its phase), and not spinning: it always shows us one face.
   moon: {
-    radius: 0.8, tiltDeg: 7, spinS: 80, rings: null,
-    look: { gas: false, bump: 0.35, colors: ["#9b9b98", "#cfcfcb", "#5b5b59"], bands: 0, bandFreq: 0, turbulence: 0, craters: 1, polarCaps: 0, spot: null, atmosphere: null },
+    radius: MOON_RADIUS, tiltDeg: 7, spinS: Infinity, rings: null, sunLit: true,
+    // Bright highlands, dark basaltic maria, softened craters.
+    look: { gas: false, bump: 0.18, colors: ["#d2d0c9", "#ecebe6", "#5f5e5a"], bands: 0, bandFreq: 0, turbulence: 0, craters: 0.45, polarCaps: 0, spot: null, atmosphere: null },
   },
   jupiter: {
     radius: 1, tiltDeg: 3, spinS: 25, rings: null,
@@ -221,6 +257,7 @@ export function visibleSpinHz(periodS: number | undefined) {
   return f;
 }
 
+
 export function visualFor(o: VisualInput): Visual {
   const p = o.params;
   const T = p.temperature_k;
@@ -232,7 +269,27 @@ export function visualFor(o: VisualInput): Visual {
 
   switch (o.slug) {
     case "sun":
-      return { kind: "star", star: star(5772, "G2V", { granulation: 26, contrast: 0.3, corona: 1.6, activity: 1 }), pulse: null };
+      // Large and dominant, fine granulation, a few sunspot groups in
+      // the activity belts, a slow visible rotation and a calm corona without spiky rays.
+      return {
+        kind: "star",
+        star: star(5772, "G2V", {
+          // A white-light solar filter view: yellow-white disc, orange limb.
+          color: [1, 0.76, 0.4],
+          radius: SUN_RADIUS,
+          granulation: 44,
+          contrast: 0.24,
+          corona: 0.6,
+          activity: 1,
+          spots: 0.9,
+          spotBelts: true,
+          spin: 0.012,
+          rays: 0.15,
+          hdr: 1.15,
+          glare: 4,
+        }),
+        pulse: null,
+      };
     case "algol":
       // Bright B8 star eclipsed every 2.87 days by a larger, dimmer K subgiant.
       return { kind: "binary", a: star(12600, "B8V", { radius: 0.75 }), b: star(4500, "K0IV", { radius: 0.95, corona: 0 }), separation: 5, inclination: 0.97, periodS: 14 };
@@ -258,7 +315,10 @@ export function visualFor(o: VisualInput): Visual {
   if (o.type === "planet" || o.type === "moon") {
     const t = T ?? 150;
     const base = t > 500 ? PLANETS.venus : t < 120 ? PLANETS.neptune : o.type === "moon" ? PLANETS.moon : PLANETS.mars;
-    return { kind: "planet", ...base };
+    // Other moons borrow our Moon's look, not its size (only ours is huge in the sky).
+    return base === PLANETS.moon
+      ? { kind: "planet", ...base, radius: 0.8, spinS: 80, sunLit: false, look: { ...base.look, craters: 1, bump: 0.35 } }
+      : { kind: "planet", ...base };
   }
   if (o.type === "star_system") {
     const t = T ?? 6000;
