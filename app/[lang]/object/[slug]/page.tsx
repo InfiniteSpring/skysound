@@ -81,7 +81,7 @@ async function ObjectPanel({ params }: { params: PageProps<"/[lang]/object/[slug
 
 function Panel({ children, back, home }: { children: React.ReactNode; back: string; home: string }) {
   return (
-    <article className="pointer-events-auto mt-auto max-h-[min(36dvh,100%)] w-full max-w-sm overflow-y-auto rounded-2xl sm:max-h-full border border-white/10 bg-[#0b0d18]/50 p-5 backdrop-blur-md">
+    <article className="pointer-events-auto mt-auto max-h-[min(36dvh,100%)] w-full max-w-sm overflow-y-auto rounded-2xl sm:max-h-full border border-white/10 p-5 backdrop-blur-md">
       <Link href={home} scroll={false} className="text-xs text-white/40 hover:text-white/70">
         {back}
       </Link>
@@ -94,7 +94,7 @@ export default function ObjectPage({ params }: PageProps<"/[lang]/object/[slug]"
   return (
     <Suspense
       fallback={
-        <article className="pointer-events-auto mt-auto w-full max-w-sm rounded-2xl border border-white/10 bg-[#0b0d18]/50 p-5 backdrop-blur-md">
+        <article className="pointer-events-auto mt-auto w-full max-w-sm rounded-2xl border border-white/10 p-5 backdrop-blur-md">
           <div className="h-24 animate-pulse rounded-lg bg-white/5" />
         </article>
       }

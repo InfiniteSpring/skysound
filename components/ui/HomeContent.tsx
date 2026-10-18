@@ -19,7 +19,7 @@ export function HomeContent({ children }: { children: React.ReactNode }) {
 
   return (
     <article
-      className="pointer-events-auto mt-auto max-h-[min(36dvh,100%)] w-full max-w-sm overflow-y-auto rounded-2xl border border-white/10 bg-[#0b0d18]/50 p-5 backdrop-blur-md sm:max-h-full"
+      className="pointer-events-auto mt-auto max-h-[min(36dvh,100%)] w-full max-w-sm overflow-y-auto rounded-2xl border border-white/10 p-5 backdrop-blur-md sm:max-h-full"
       data-testid="home-track"
     >
       <p className="flex items-center gap-2 text-xs text-white/40">

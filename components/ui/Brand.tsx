@@ -7,6 +7,8 @@ import { useLang } from "@/components/i18n/LangProvider";
 import { useSky } from "@/components/sky/SkyProvider";
 
 const SIZE = 36;
+/** Rendered size: the icon sits inside a 38px header pill. */
+const DRAW = 28;
 const C = SIZE / 2;
 /** Three rings: radius, ripple count, base amplitude, rotation speed. */
 const RINGS = [
@@ -68,7 +70,7 @@ function WaveOrbitIcon({ playing }: { playing: boolean }) {
   }, []);
 
   return (
-    <svg aria-hidden width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="shrink-0 overflow-visible">
+    <svg aria-hidden width={DRAW} height={DRAW} viewBox={`0 0 ${SIZE} ${SIZE}`} className="shrink-0 overflow-visible">
       <defs>
         <linearGradient id="brand-wave" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#e0f2fe" />
@@ -107,7 +109,7 @@ function WaveOrbitIcon({ playing }: { playing: boolean }) {
   );
 }
 
-/** Logo: the wave-orbit icon, a two-line wordmark and a live equalizer. */
+/** Logo: a header pill (same chrome as search and language) with the wave-orbit icon, a one-line wordmark and an equalizer that slides in while music plays. */
 export function Brand() {
   const { t, href } = useLang();
   const { goHome } = useSky();
@@ -125,24 +127,19 @@ export function Brand() {
         goHome();
       }}
       aria-label={t.siteName}
-      className="group pointer-events-auto flex shrink-0 items-center gap-3"
+      className="group pointer-events-auto flex h-[38px] shrink-0 items-center gap-2.5 rounded-2xl border border-white/10 ps-1.5 pe-1.5 backdrop-blur-md max-[420px]:w-[38px] max-[420px]:justify-center max-[420px]:px-0 transition-colors hover:border-white/25 min-[421px]:pe-3.5"
     >
       <WaveOrbitIcon playing={playing} />
-      <span className="flex flex-col leading-none max-[420px]:hidden">
-        {quiet && (
-          <span className="mb-1 text-[9px] font-medium uppercase tracking-[0.32em] text-white/45 transition-colors group-hover:text-white/70">
-            {quiet}
-          </span>
-        )}
-        <span className="flex items-center gap-2">
-          <span className="bg-gradient-to-r from-white via-sky-200 to-violet-300 bg-clip-text text-lg font-semibold tracking-tight text-transparent">
-            {accent}
-          </span>
-          <span aria-hidden className={`eq flex h-3.5 items-end gap-[2px] ${playing ? "eq-on" : ""}`}>
-            {[0, 1, 2, 3].map((i) => (
-              <span key={i} className="w-[2px] rounded-full bg-sky-200/70" />
-            ))}
-          </span>
+      <span className="flex items-center whitespace-nowrap text-sm leading-none max-[420px]:hidden">
+        {quiet && <span className="me-[0.3em] font-light text-white/70 transition-colors group-hover:text-white/90">{quiet}</span>}
+        <span className="bg-gradient-to-r from-white via-sky-200 to-violet-300 bg-clip-text font-semibold text-transparent">{accent}</span>
+        <span
+          aria-hidden
+          className={`eq flex h-3 items-end gap-[2px] overflow-hidden transition-all duration-500 ${playing ? "eq-on ms-2.5 w-[14px] opacity-100" : "ms-0 w-0 opacity-0"}`}
+        >
+          {[0, 1, 2, 3].map((i) => (
+            <span key={i} className="w-[2px] shrink-0 rounded-full bg-sky-200/80" />
+          ))}
         </span>
       </span>
     </Link>

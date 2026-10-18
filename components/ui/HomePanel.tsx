@@ -11,7 +11,7 @@ export function HomePanel({ title, children }: { title: string; children: React.
   const bodyId = useId();
   return (
     <section
-      className="pointer-events-auto mt-auto flex max-h-full w-full max-w-sm flex-col rounded-2xl border border-white/10 bg-[#0b0d18]/50 backdrop-blur-md"
+      className="pointer-events-auto mt-auto flex max-h-full w-full max-w-sm flex-col rounded-2xl border border-white/10 backdrop-blur-md"
       data-testid="home-panel"
     >
       <h1>

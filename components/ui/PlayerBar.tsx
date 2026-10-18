@@ -52,7 +52,7 @@ export function PlayerBar() {
 
   return (
     <div className="pointer-events-auto min-w-0 max-w-4xl flex-1" data-testid="player-bar">
-      <div className="flex h-full flex-wrap items-center gap-x-2 gap-y-2 rounded-2xl border border-white/10 bg-[#0b0d18]/50 px-2.5 py-2 backdrop-blur-md sm:flex-nowrap sm:gap-x-3 sm:px-3">
+      <div className="flex h-full flex-wrap items-center gap-x-2 gap-y-2 rounded-2xl border border-white/10 px-2.5 py-2 backdrop-blur-md sm:flex-nowrap sm:gap-x-3 sm:px-3">
         <div className="flex shrink-0 items-center gap-0.5">
           <button
             type="button"

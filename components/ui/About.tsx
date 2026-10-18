@@ -93,7 +93,7 @@ export function AboutButton() {
       aria-controls={sheetId}
       data-testid="about-toggle"
       aria-label={t.about.button}
-      className="pointer-events-auto flex shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-[#0b0d18]/50 px-3.5 text-sm text-white/65 backdrop-blur-md transition hover:border-white/25 hover:text-white sm:px-5"
+      className="pointer-events-auto flex shrink-0 items-center justify-center rounded-2xl border border-white/10 px-3.5 text-sm text-white/65 backdrop-blur-md transition hover:border-white/25 hover:text-white sm:px-5"
     >
       <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className="sm:hidden">
         <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
@@ -231,7 +231,7 @@ export function AboutSheet() {
       >
         <div
           ref={panelRef}
-          className="max-h-[80vh] overflow-y-auto overscroll-contain rounded-t-3xl border-t border-white/10 bg-[#0b0d18]/50 px-5 pb-8 pt-6 shadow-2xl backdrop-blur-md sm:px-8 pointer-coarse:pt-3"
+          className="max-h-[80vh] overflow-y-auto overscroll-contain rounded-t-3xl border-t border-white/10 px-5 pb-8 pt-6 shadow-2xl backdrop-blur-md sm:px-8 pointer-coarse:pt-3"
         >
           {/* Swipe handle: touch screens only. */}
           <div className="-mx-5 -mt-3 hidden pb-2 pt-3 pointer-coarse:block">
