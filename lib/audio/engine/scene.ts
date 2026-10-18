@@ -2,6 +2,7 @@ import * as Tone from "tone";
 import { composeBar, initialState, type BarPlan, type ComposerState, type GuitarTone } from "../composer";
 import type { GenrePreset, LayerName } from "../genres";
 import type { MusicParams } from "../mapping";
+import { NEUTRAL_MIX, type GenreMix } from "../mix";
 import { midiToFreq } from "../theory";
 import { createInstruments, disposeInstruments, type Instruments } from "./instruments";
 
@@ -33,6 +34,7 @@ export class MusicScene {
     readonly params: MusicParams,
     readonly genre: GenrePreset,
     destination: Tone.InputNode,
+    private mix: GenreMix = NEUTRAL_MIX,
   ) {
     const p = params;
     this.out = new Tone.Gain(0).connect(destination);
@@ -48,8 +50,7 @@ export class MusicScene {
     this.filter = new Tone.Filter({ type: "lowpass", frequency: p.cutoffHz, Q: 0.7, rolloff: -24 });
 
     const layer = (name: LayerName, sends: { reverb: boolean; delay: boolean }) => {
-      const cfg = genre.layers[name];
-      const g = new Tone.Gain(cfg.enabled ? Tone.dbToGain(cfg.gainDb) : 0).connect(this.dyn);
+      const g = new Tone.Gain(this.layerGain(name)).connect(this.dyn);
       if (sends.reverb) g.connect(this.reverbSend);
       if (sends.delay) g.connect(this.delaySend);
       return g;
@@ -64,7 +65,7 @@ export class MusicScene {
       guitar: layer("guitar", { reverb: false, delay: false }),
     };
     if (genre.layers.guitar.enabled) {
-      this.guitarSpace = new Tone.Gain(0.5).connect(this.reverb);
+      this.guitarSpace = new Tone.Gain(0.5 * mix.space).connect(this.reverb);
       this.layers.guitar.connect(this.guitarSpace);
     }
 
@@ -72,6 +73,26 @@ export class MusicScene {
     this.state = initialState(p);
     // Swallow late IR completion if the scene was disposed while rendering.
     this.ready = this.reverb.ready.catch(() => {});
+  }
+
+  private layerGain(name: LayerName) {
+    const cfg = this.genre.layers[name];
+    const m = this.mix.layers[name];
+    return cfg.enabled && m.on ? Tone.dbToGain(cfg.gainDb + m.db) : 0;
+  }
+
+  /**
+   * Apply a new listener mix while playing: levels and reverb ramp now; density, register
+   * and drive take effect from the next bar the composer writes.
+   */
+  setMix(mix: GenreMix) {
+    if (this.disposed) return;
+    this.mix = mix;
+    const now = Tone.now();
+    for (const name of Object.keys(this.layers) as LayerName[]) this.layers[name].gain.rampTo(this.layerGain(name), 0.15, now);
+    this.reverbSend.gain.rampTo(this.params.reverbWet * mix.space, 0.3, now);
+    if (this.tone) this.guitarSpace?.gain.rampTo(this.tone.space * mix.space, 0.3, now);
+    this.tone = null; // re-apply the guitar tone (drive) on the next bar
   }
 
   /** Begin on the next beat of the shared transport (not the next bar: that can be 4+ s away). */
@@ -115,7 +136,7 @@ export class MusicScene {
 
   private playBar(time: number) {
     if (this.disposed) return;
-    const plan = composeBar(this.params, this.genre, this.bar++, this.state);
+    const plan = composeBar(this.params, this.genre, this.bar++, this.state, this.mix);
     const spb = 60 / Tone.getTransport().bpm.value;
     this.applyDynamics(plan, time, spb);
 
@@ -154,15 +175,15 @@ export class MusicScene {
   private setGuitarTone(tone: GuitarTone, time: number) {
     const g = this.inst.guitar;
     const prev = this.tone;
-    if (!g || (prev && prev.style === tone.style)) return;
+    if (!g || (prev && prev.style === tone.style && prev.drive === tone.drive)) return;
     this.tone = tone;
-    if (tone.drive > 0) {
+    if (tone.style === "crunch" || tone.style === "wall") {
       g.drive.distortion = tone.drive;
       g.level.gain.setValueAtTime(1 - 0.45 * tone.drive, time); // more gain, more output: even it out
     }
     g.dirty.set({ envelope: { attack: tone.swell ? 1.6 : 0.004 } });
     g.clean.set({ envelope: { attack: tone.swell ? 0.5 : 0.003 } });
-    this.guitarSpace?.gain.linearRampToValueAtTime(tone.space, time + 2);
+    this.guitarSpace?.gain.linearRampToValueAtTime(tone.space * this.mix.space, time + 2);
   }
 
   /** Light curve -> level, brightness filter and reverb amount, ramped per beat. */
@@ -173,7 +194,7 @@ export class MusicScene {
       const t = time + b * spb;
       this.dyn.gain.linearRampToValueAtTime(1 - depth + depth * v, t);
       this.filter.frequency.linearRampToValueAtTime(p.cutoffHz * (0.55 + 0.9 * v * depth + (1 - depth) * 0.45), t);
-      this.reverbSend.gain.linearRampToValueAtTime(p.reverbWet * (0.75 + 0.5 * (1 - v) * depth), t);
+      this.reverbSend.gain.linearRampToValueAtTime(p.reverbWet * this.mix.space * (0.75 + 0.5 * (1 - v) * depth), t);
     });
   }
 }

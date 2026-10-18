@@ -1,5 +1,6 @@
 import type { GenrePreset } from "./genres";
 import type { MusicParams } from "./mapping";
+import { NEUTRAL_MIX, type GenreMix } from "./mix";
 import { barSeed, rng } from "./random";
 import { chordMidi, degreeToMidi, voiceLead } from "./theory";
 
@@ -79,9 +80,19 @@ function phraseShape(p: MusicParams, genre: GenrePreset, bar: number) {
   };
 }
 
-export function composeBar(p: MusicParams, genre: GenrePreset, bar: number, state: ComposerState): BarPlan {
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/**
+ * One bar of music. `mix` is the listener's adjustment: density scales how many notes
+ * play, register lifts or lowers melodic voices, drive sets the guitar's gain. The
+ * neutral mix reproduces the preset exactly (same notes, same random sequence).
+ */
+export function composeBar(p: MusicParams, genre: GenrePreset, bar: number, state: ComposerState, mix: GenreMix = NEUTRAL_MIX): BarPlan {
   const r = rng(barSeed(p.seed, bar));
   const shape = phraseShape(p, genre, bar);
+  const { density: dens, register: reg } = mix;
+  if (dens !== 1) shape.leadRests = shape.phrase % 4 !== 0 && rng(barSeed(p.seed, shape.phrase, 5)).chance(clamp(0.25 / dens ** 1.5, 0, 0.9));
+  if (reg !== 0) shape.leadOctave = rng(barSeed(p.seed, shape.phrase, 6)).chance(clamp(0.3 + 0.6 * reg, 0, 1)) ? 1 : reg < -0.5 ? -1 : 0;
   const { chordBars, chordSize, phraseLength, swing } = genre.rules;
 
   if (shape.rotate && bar % phraseLength === 0) {
@@ -117,8 +128,9 @@ export function composeBar(p: MusicParams, genre: GenrePreset, bar: number, stat
   }
 
   // Pad
-  const [lo, hi] = genre.id === "lofi" ? [55, 74] : genre.id === "metal" ? [48, 66] : [52, 72];
-  const voicing = voiceLead(chord, state.voicing, lo, hi);
+  const [lo0, hi0] = genre.id === "lofi" ? [55, 74] : genre.id === "metal" ? [48, 66] : [52, 72];
+  const lift = Math.round(reg * 7);
+  const voicing = voiceLead(chord, state.voicing, lo0 + lift, hi0 + lift);
   if (chordStart) {
     state.voicing = voicing;
     if (genre.instruments.pad !== "keys") {
@@ -127,7 +139,7 @@ export function composeBar(p: MusicParams, genre: GenrePreset, bar: number, stat
     } else {
       // Keys: soft strum on 1, optional re-strike on the "and" of 3.
       voicing.forEach((midi, i) => plan.pad.push({ time: i * 0.03, midi, dur: 2.4, vel: 0.42 }));
-      if (shape.padRestrike) voicing.forEach((midi, i) => plan.pad.push({ time: swingTime(2.5, swing) + i * 0.03, midi, dur: 1.3, vel: 0.3 }));
+      if (dens === 1 ? shape.padRestrike : rng(barSeed(p.seed, bar, 7)).chance(clamp(0.5 * dens, 0, 1))) voicing.forEach((midi, i) => plan.pad.push({ time: swingTime(2.5, swing) + i * 0.03, midi, dur: 1.3, vel: 0.3 }));
     }
   }
 
@@ -146,14 +158,15 @@ export function composeBar(p: MusicParams, genre: GenrePreset, bar: number, stat
 
   // Lead: a random walk over the scale, landing on chord tones on strong beats.
   if (!shape.leadRests) {
-    const density = p.density * shape.energy;
+    const density = clamp(p.density * shape.energy * dens, 0, 0.95);
+    const top = 13 + Math.round(reg * 3);
     const chordDegrees = new Set([0, 2, 4].map((i) => (((chordDegree + i) % 7) + 7) % 7));
     for (let e = 0; e < BEATS * 2; e++) {
       const strong = e % 4 === 0;
       if (!r.chance(strong ? density * 1.4 : density)) continue;
       const step = r.pick([-2, -1, -1, 1, 1, 2, 0]);
       let degree = state.leadDegree + step;
-      if (degree < 4 || degree > 13) degree = state.leadDegree - step;
+      if (degree < 4 || degree > top) degree = state.leadDegree - step;
       if (strong) {
         // Nudge to the nearest chord tone so downbeats are always consonant.
         for (const d of [0, 1, -1, 2, -2]) {
@@ -176,13 +189,15 @@ export function composeBar(p: MusicParams, genre: GenrePreset, bar: number, stat
     const n = p.pulse.subdivision;
     for (let i = 0; i < n; i++) {
       const accent = p.pulse.accents[Math.floor((i / n) * p.pulse.accents.length)];
-      if (accent < 0.15 && !r.chance(0.35)) continue;
+      if (accent < 0.15 && !r.chance(clamp(0.35 * dens, 0, 1))) continue;
+      if (dens < 1 && accent < 0.5 && !r.chance(dens)) continue;
       plan.texture.push({ time: (i * BEATS) / n, midi: chord[i % chord.length] + 36, dur: 0.1, vel: 0.15 + 0.45 * accent });
     }
   } else if (genre.instruments.texture === "shimmer") {
     for (let b = 0; b < BEATS; b++) {
-      if (r.chance(0.18 * shape.energy)) {
-        plan.texture.push({ time: b + r.pick([0, 0.5]), midi: r.pick(chord) + 24, dur: 2, vel: 0.2 + r.range(0, 0.15) });
+      if (r.chance(0.18 * shape.energy * dens)) {
+        const up = reg > 0 && r.chance(reg * 0.6) ? 12 : reg < 0 && r.chance(-reg * 0.6) ? -12 : 0;
+        plan.texture.push({ time: b + r.pick([0, 0.5]), midi: r.pick(chord) + 24 + up, dur: 2, vel: 0.2 + r.range(0, 0.15) });
       }
     }
   }
@@ -191,17 +206,19 @@ export function composeBar(p: MusicParams, genre: GenrePreset, bar: number, stat
   if (genre.instruments.drums === "boombap") {
     plan.drums.kick.push({ time: 0, vel: 0.9 });
     plan.drums.kick.push({ time: swingTime(2.5, swing), vel: 0.7 });
-    if (r.chance(0.3)) plan.drums.kick.push({ time: swingTime(1.5, swing), vel: 0.45 });
+    if (r.chance(clamp(0.3 * dens, 0, 0.9))) plan.drums.kick.push({ time: swingTime(1.5, swing), vel: 0.45 });
     plan.drums.snare.push({ time: 1, vel: 0.75 }, { time: 3, vel: 0.8 });
     for (let e = 0; e < 8; e++) {
-      if (e % 2 === 1 && r.chance(0.15)) continue;
+      if (e % 2 === 1 && r.chance(clamp(0.15 / dens, 0, 1))) continue;
       plan.drums.hat.push({ time: swingTime(e / 2, swing), vel: (e % 2 ? 0.25 : 0.4) + r.range(0, 0.1) });
     }
+    // Busy: sixteenth ghost hats before the beats.
+    if (dens > 1.4) for (let b = 0; b < BEATS; b++) if (r.chance((dens - 1.4) * 0.5)) plan.drums.hat.push({ time: b + 0.75, vel: 0.14 });
   }
 
   // Ambient metal: the guitar changes character per phrase (see guitarStyle) and the drums
   // follow it — silent under clean passages, a slow heavy pulse only under the walls.
-  if (genre.instruments.guitar === "heavy") ambientMetal(p, plan, bar, chordDegree, chordStart, genre, shape.energy);
+  if (genre.instruments.guitar === "heavy") ambientMetal(p, plan, bar, chordDegree, chordStart, genre, shape.energy, mix);
 
   // Drum voices are monophonic: Tone needs their hits in time order.
   for (const hits of Object.values(plan.drums)) hits.sort((a: HitEvent, b: HitEvent) => a.time - b.time);
@@ -256,11 +273,30 @@ const ARP_SHAPES = [
   [0, 3, 4, 7],
 ];
 
-function ambientMetal(p: MusicParams, plan: BarPlan, bar: number, chordDegree: number, chordStart: boolean, genre: GenrePreset, energy: number) {
+/** Extra-busy arpeggio rhythms, used only when the listener asks for more notes. */
+const ARP_BUSY = [
+  [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5],
+  [0, 0.5, 1, 2, 2.5, 3],
+  [0, 0.75, 1.5, 2, 2.75, 3.5],
+];
+
+function ambientMetal(
+  p: MusicParams,
+  plan: BarPlan,
+  bar: number,
+  chordDegree: number,
+  chordStart: boolean,
+  genre: GenrePreset,
+  energy: number,
+  mix: GenreMix,
+) {
   const { phraseLength, chordBars } = genre.rules;
+  const { density: dens, register: reg } = mix;
   const phrase = Math.floor(bar / phraseLength);
   const style = guitarStyle(p, phrase);
-  plan.guitarTone = { style, ...TONES[style] };
+  const tone = TONES[style];
+  // Drive scales the distortion of the crunch and wall styles; clean styles stay clean.
+  plan.guitarTone = { style, ...tone, drive: clamp(tone.drive * mix.drive, 0, 1) };
   const r = rng(barSeed(p.seed, bar, 4));
   const deg = (base: number, d: number) => degreeToMidi(base, p.scale, chordDegree + d);
   /** Octave base so the chord root lands in [lo, lo + 12). */
@@ -271,9 +307,11 @@ function ambientMetal(p: MusicParams, plan: BarPlan, bar: number, chordDegree: n
   };
 
   if (style === "clean" || style === "shimmer") {
-    const base = baseFor(style === "shimmer" ? 64 : 50);
+    const base = baseFor((style === "shimmer" ? 64 : 50) + (reg > 0.5 ? 12 : reg < -0.5 ? -12 : 0));
     const shape = r.pick(ARP_SHAPES);
-    const rhythm = style === "shimmer" ? r.pick([[0, 2], [0, 1.5, 3], [1, 3]]) : r.pick(ARP_RHYTHMS);
+    let rhythm = style === "shimmer" ? r.pick([[0, 2], [0, 1.5, 3], [1, 3]]) : r.pick(ARP_RHYTHMS);
+    if (dens > 1.3 && rng(barSeed(p.seed, bar, 8)).chance(clamp((dens - 1.3) * 0.8, 0, 1))) rhythm = r.pick(ARP_BUSY);
+    else if (dens < 0.8) rhythm = rhythm.filter((_, k) => k === 0 || rng(barSeed(p.seed, bar, 9 + k)).chance(dens));
     // Walk across the chord shape: never the same note twice running, direction changes freely.
     let i = r.int(0, shape.length - 1);
     let last = -1;
@@ -284,7 +322,7 @@ function ambientMetal(p: MusicParams, plan: BarPlan, bar: number, chordDegree: n
       if (next === last || next < 0 || next >= shape.length) next = (i + 1) % shape.length;
       last = i;
       i = next;
-      let midi = deg(base, shape[i]) + (r.chance(0.15) ? 12 : 0);
+      let midi = deg(base, shape[i]) + (r.chance(reg === 0 ? 0.15 : clamp(0.15 + 0.5 * reg, 0, 0.8)) ? 12 : 0);
       if (midi === lastMidi) midi = deg(base, shape[i]) === lastMidi ? midi + 12 : deg(base, shape[i]); // an octave jump can land on the last note
       lastMidi = midi;
       plan.clean.push({ time, midi, dur: style === "shimmer" ? 4 : r.pick([2, 3, 4]), vel: 0.32 + r.range(0, 0.22) });
@@ -298,7 +336,7 @@ function ambientMetal(p: MusicParams, plan: BarPlan, bar: number, chordDegree: n
       voicing.forEach((d, k) => plan.guitar.push({ time: k * 0.04, midi: deg(base, d), dur: chordBars * BEATS - 0.3, vel: 0.6 - k * 0.05 }));
       plan.drums.kick.push({ time: 0, vel: 0.75 });
     } else {
-      if (r.chance(0.35)) voicing.slice(0, 2).forEach((d, k) => plan.guitar.push({ time: 2.5 + k * 0.03, midi: deg(base, d), dur: 1.4, vel: 0.42 }));
+      if (r.chance(clamp(0.35 * dens, 0, 1))) voicing.slice(0, 2).forEach((d, k) => plan.guitar.push({ time: 2.5 + k * 0.03, midi: deg(base, d), dur: 1.4, vel: 0.42 }));
       plan.drums.snare.push({ time: 2, vel: 0.55 });
     }
   } else if (style === "wall") {
@@ -309,7 +347,7 @@ function ambientMetal(p: MusicParams, plan: BarPlan, bar: number, chordDegree: n
     }
     plan.drums.kick.push({ time: 0, vel: 0.85 });
     plan.drums.snare.push({ time: 2, vel: 0.75 });
-    if (energy > 0.7) plan.drums.hat.push({ time: 0, vel: 0.14 }, { time: 2, vel: 0.12 }); // a ride on half notes, barely there
+    if (energy > 0.7 / dens) plan.drums.hat.push({ time: 0, vel: 0.14 }, { time: 2, vel: 0.12 }); // a ride on half notes, barely there
   }
 
   if (bar % phraseLength === 0 && (style === "wall" || style === "crunch")) plan.drums.crash.push({ time: 0, vel: style === "wall" ? 0.55 : 0.35 });

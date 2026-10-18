@@ -166,6 +166,10 @@ for 10 minutes, and `Retry-After` is respected.
   - show the playing object's card on the home page (on by default).
 - **Sound settings:** crossfade length; auto-switch every N minutes, in random order, list
   order or same-type order.
+- **Mix (per genre):** tempo (±25%), notes (×0.25 sparse … ×2.5 busy), register (low ↔ high
+  notes), reverb, guitar gain (Ambient metal), and a level and mute for each layer. Changes
+  apply live, from the next bar. The neutral mix reproduces the preset exactly; the composer
+  reads the mix (`lib/audio/mix.ts`) as a pure input, so it is unit-tested like the rest.
 - All settings are kept in localStorage.
 
 **Close-ups.**

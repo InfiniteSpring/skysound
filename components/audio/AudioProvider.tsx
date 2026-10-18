@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { AudioEngine, AudioObject, NowPlaying } from "@/lib/audio/engine";
 import { GENRES, type GenreId } from "@/lib/audio/genres";
+import { defaultMixes, neutralMix, sanitizeMix, sanitizeMixes, type GenreMix, type MixSettings } from "@/lib/audio/mix";
 
 type Status = "locked" | "starting" | "playing" | "paused" | "unsupported";
 
@@ -36,6 +37,8 @@ interface AudioApi {
   nowPlaying: NowPlaying | null;
   volume: number;
   settings: AudioSettings;
+  /** The listener's adjustments per genre (tempo, density, register, levels…). */
+  mixes: MixSettings;
   /** Create the AudioContext. Call synchronously inside a click/keydown handler. */
   unlock(): void;
   play(object: AudioObject): Promise<void>;
@@ -45,6 +48,9 @@ interface AudioApi {
   toggle(): void;
   setVolume(v: number): void;
   updateSettings(patch: Partial<AudioSettings>): void;
+  /** Change a genre's mix; applies live when that genre is playing. */
+  setMix(genre: GenreId, patch: Partial<GenreMix>): void;
+  resetMix(genre: GenreId): void;
 }
 
 const AudioContextReact = createContext<AudioApi | null>(null);
@@ -58,6 +64,7 @@ const shared: { engine: Promise<AudioEngine> | null; object: AudioObject | null 
 const GENRE_KEY = "skysound:genre";
 const VOLUME_KEY = "skysound:volume";
 const SETTINGS_KEY = "skysound:audio-settings";
+const MIX_KEY = "skysound:mix";
 
 function readStored(key: string): unknown {
   try {
@@ -100,6 +107,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [volume, setVolumeState] = useState(0.8);
   const [settings, setSettings] = useState<AudioSettings>(DEFAULT_SETTINGS);
   const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(null);
+  const [mixes, setMixes] = useState<MixSettings>(defaultMixes);
+  const mixesRef = useRef(mixes);
   const genreRef = useRef(genre);
   const volumeRef = useRef(volume);
   const settingsRef = useRef(settings);
@@ -117,6 +126,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     if (isGenre(g)) genreRef.current = g;
     if (isVolume(v)) volumeRef.current = v;
     settingsRef.current = s;
+    mixesRef.current = sanitizeMixes(readStored(MIX_KEY));
+    setMixes(mixesRef.current);
     setGenreState(genreRef.current);
     setVolumeState(volumeRef.current);
     setSettings(s);
@@ -164,7 +175,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const start = useCallback(async (object: AudioObject, g: GenreId) => {
     if (!shared.engine) return;
     const engine = await shared.engine;
-    engine.play(object, g, settingsRef.current.crossfadeS);
+    engine.play(object, g, settingsRef.current.crossfadeS, mixesRef.current[g]);
     setNowPlaying(engine.nowPlaying);
     setStatus("playing");
   }, []);
@@ -227,6 +238,22 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     store(SETTINGS_KEY, next);
   }, []);
 
+  const applyMix = useCallback((g: GenreId, mix: GenreMix) => {
+    const next = { ...mixesRef.current, [g]: mix };
+    mixesRef.current = next;
+    setMixes(next);
+    store(MIX_KEY, next);
+    void shared.engine?.then((engine) => {
+      engine.setMix(g, mix);
+      setNowPlaying(engine.nowPlaying);
+    });
+  }, []);
+  const setMix = useCallback(
+    (g: GenreId, patch: Partial<GenreMix>) => applyMix(g, sanitizeMix({ ...mixesRef.current[g], ...patch })),
+    [applyMix],
+  );
+  const resetMix = useCallback((g: GenreId) => applyMix(g, neutralMix()), [applyMix]);
+
   const api = useMemo<AudioApi>(
     () => ({
       status,
@@ -234,6 +261,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       nowPlaying,
       volume,
       settings,
+      mixes,
       unlock,
       play,
       requestedSlug,
@@ -241,8 +269,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       toggle,
       setVolume,
       updateSettings,
+      setMix,
+      resetMix,
     }),
-    [status, genre, nowPlaying, volume, settings, unlock, play, requestedSlug, setGenre, toggle, setVolume, updateSettings],
+    [status, genre, nowPlaying, volume, settings, mixes, unlock, play, requestedSlug, setGenre, toggle, setVolume, updateSettings, setMix, resetMix],
   );
 
   return <AudioContextReact.Provider value={api}>{children}</AudioContextReact.Provider>;

@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { useAudio, type SwitchOrder } from "@/components/audio/AudioProvider";
 import { useLang } from "@/components/i18n/LangProvider";
 import { useSky } from "@/components/sky/SkyProvider";
+import { MixControls } from "./MixControls";
 
 const MINUTE_PRESETS = [1, 5, 10, 20, 30];
 const ORDERS: SwitchOrder[] = ["random", "sequential", "same_type"];
@@ -194,6 +195,12 @@ export function SettingsPanel() {
                     />
                   </div>
                 </fieldset>
+              </div>
+
+              <div className="space-y-3 border-t border-white/10 pt-4">
+                <div className={groupTitle}>{t.mix.title}</div>
+                <p className="text-xs text-white/40">{t.mix.hint}</p>
+                <MixControls />
               </div>
             </div>
           </div>

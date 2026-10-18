@@ -2,6 +2,7 @@ import * as Tone from "tone";
 import type { SpaceObject } from "../../sources/types";
 import { GENRES, type GenreId } from "../genres";
 import { mapToMusic, type MusicParams } from "../mapping";
+import { mixedBpm, NEUTRAL_MIX, type GenreMix } from "../mix";
 import { MusicScene } from "./scene";
 
 export type AudioObject = Pick<SpaceObject, "slug" | "name" | "type" | "params" | "lightCurve">;
@@ -10,7 +11,10 @@ export interface NowPlaying {
   slug: string;
   name: string;
   genre: GenreId;
+  /** Music as played, with the listener's tempo change applied to `bpm`. */
   music: MusicParams;
+  /** The object's own tempo before the mix. */
+  baseBpm: number;
 }
 
 export const DEFAULT_FADE_S = 3;
@@ -45,14 +49,15 @@ export class AudioEngine {
   }
 
   /** Crossfade to `object` in `genre`. Safe to call rapidly: only the latest request wins. */
-  play(object: AudioObject, genreId: GenreId, fadeS = DEFAULT_FADE_S) {
+  play(object: AudioObject, genreId: GenreId, fadeS = DEFAULT_FADE_S, mix: GenreMix = NEUTRAL_MIX) {
     const token = ++this.token;
     this.cancelPendingPause();
     const genre = GENRES[genreId];
-    const music = mapToMusic(object, genre);
+    const base = mapToMusic(object, genre);
+    const music = { ...base, bpm: mixedBpm(base.bpm, mix) };
     // Don't wait for the reverb impulse response: the dry signal starts right away and the
     // reverb tail joins as soon as the IR is rendered (it is silent until then).
-    const scene = new MusicScene(music, genre, this.bus);
+    const scene = new MusicScene(music, genre, this.bus, mix);
     if (token !== this.token) {
       scene.dispose();
       return;
@@ -77,7 +82,19 @@ export class AudioEngine {
       setTimeout(() => this.fading.delete(old), (fadeS + 1) * 1000);
     }
     this.current = scene;
-    this.nowPlaying = { slug: object.slug, name: object.name, genre: genreId, music };
+    this.nowPlaying = { slug: object.slug, name: object.name, genre: genreId, music, baseBpm: base.bpm };
+  }
+
+  /** Change the listener mix of the playing genre live (no crossfade). */
+  setMix(genreId: GenreId, mix: GenreMix) {
+    const np = this.nowPlaying;
+    if (!this.current || !np || np.genre !== genreId) return;
+    this.current.setMix(mix);
+    const bpm = mixedBpm(np.baseBpm, mix);
+    if (bpm !== np.music.bpm) {
+      Tone.getTransport().bpm.rampTo(bpm, 0.6);
+      this.nowPlaying = { ...np, music: { ...np.music, bpm } };
+    }
   }
 
   get isPlaying() {

@@ -10,6 +10,7 @@ import {
   mapToMusic,
   periodToBpm,
 } from "@/lib/audio/mapping";
+import { mixedBpm, neutralMix, sanitizeMix, type GenreMix } from "@/lib/audio/mix";
 import { chordMidi, inScale, quantize, voiceLead } from "@/lib/audio/theory";
 import { normalize } from "@/lib/sources/normalize";
 import type { RawBundle, SpaceObject } from "@/lib/sources/types";
@@ -187,5 +188,67 @@ describe("composer", () => {
     const plan = composeBar(m, lofi, 0, initialState(m));
     expect(plan.drums.hat.some((h) => Math.abs((h.time % 1) - 0.5 - lofi.rules.swing / 2) < 1e-6)).toBe(true);
     expect(plan.drums.snare.map((s) => s.time)).toEqual([1, 3]);
+  });
+});
+
+describe("listener mix", () => {
+  const run = (genre: typeof ambient, mix: GenreMix | undefined, bars = 64) =>
+    objects.slice(0, 12).flatMap((o) => {
+      const m = mapToMusic(o, genre);
+      const state = initialState(m);
+      return Array.from({ length: bars }, (_, b) => composeBar(m, genre, b, state, mix));
+    });
+  const count = (plans: BarPlan[]) =>
+    plans.reduce((n, p) => n + p.lead.length + p.texture.length + p.clean.length + p.guitar.length + p.drums.hat.length, 0);
+  const melodic = (plans: BarPlan[]) => plans.flatMap((p) => [...p.lead, ...p.clean, ...p.texture].map((n) => n.midi));
+  const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+
+  it("the neutral mix reproduces the preset exactly", () => {
+    for (const g of GENRE_LIST) expect(JSON.stringify(run(g, neutralMix(), 24))).toBe(JSON.stringify(run(g, undefined, 24)));
+  });
+
+  it("density changes how many notes play, in every genre", () => {
+    for (const g of GENRE_LIST) {
+      const base = count(run(g, undefined));
+      expect(count(run(g, sanitizeMix({ density: 0.4 })))).toBeLessThan(base * 0.8);
+      expect(count(run(g, sanitizeMix({ density: 2.2 })))).toBeGreaterThan(base * 1.3);
+    }
+  });
+
+  it("register moves the melody up or down and stays in key", () => {
+    for (const g of GENRE_LIST) {
+      const base = mean(melodic(run(g, undefined)));
+      expect(mean(melodic(run(g, sanitizeMix({ register: 1 }))))).toBeGreaterThan(base + 2);
+      expect(mean(melodic(run(g, sanitizeMix({ register: -1 }))))).toBeLessThan(base - 2);
+    }
+    for (const o of objects.slice(0, 6)) {
+      const m = mapToMusic(o, metal);
+      const state = initialState(m);
+      for (let b = 0; b < 32; b++)
+        for (const n of allNotes(composeBar(m, metal, b, state, sanitizeMix({ register: 1, density: 2.5 })))) expect(inScale(n, m.rootMidi, m.scale)).toBe(true);
+    }
+  });
+
+  it("drive scales the guitar's distortion and keeps clean styles clean", () => {
+    const m = mapToMusic(objects[0], metal);
+    const tones = (drive: number) => {
+      const state = initialState(m);
+      return Array.from({ length: 96 }, (_, b) => composeBar(m, metal, b, state, sanitizeMix({ drive })).guitarTone!);
+    };
+    const wall = (drive: number) => tones(drive).find((t) => t.style === "crunch")!.drive;
+    expect(wall(2)).toBeGreaterThan(wall(1));
+    expect(tones(0).every((t) => t.drive === 0)).toBe(true);
+    expect(tones(2).filter((t) => t.style === "clean").every((t) => t.drive === 0)).toBe(true);
+  });
+
+  it("sanitizes stored mixes", () => {
+    expect(sanitizeMix(null)).toEqual(neutralMix());
+    const m = sanitizeMix({ tempo: 3, density: -1, register: "x", layers: { lead: { db: 99, on: false } } });
+    expect(m.tempo).toBe(0.25);
+    expect(m.density).toBe(0.25);
+    expect(m.register).toBe(0);
+    expect(m.layers.lead).toEqual({ db: 9, on: false });
+    expect(m.layers.bass).toEqual({ db: 0, on: true });
+    expect(mixedBpm(60, sanitizeMix({ tempo: 0.1 }))).toBe(66);
   });
 });
